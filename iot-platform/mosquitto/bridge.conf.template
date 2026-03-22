@@ -1,0 +1,91 @@
+# =============================================================================
+# Mosquitto Bridge Configuration Template - Location Pi to Master Pi
+# =============================================================================
+#
+# MQTT bridging connects two MQTT brokers together, allowing messages to flow
+# between them. In our architecture each location Pi runs its own local
+# Mosquitto broker. The bridge forwards selected topics from the location Pi
+# up to the master Pi (and receives commands back), creating a hub-and-spoke
+# topology:
+#
+#   [IoT Devices] <---> [Location Pi Broker] <---bridge---> [Master Pi Broker]
+#
+# This keeps local traffic local (low latency for devices) while still
+# aggregating telemetry and status data at the master for central monitoring,
+# storage, and control.
+#
+# HOW TO USE THIS TEMPLATE:
+#   1. Copy this file to bridge.conf (or into /etc/mosquitto/conf.d/).
+#   2. Replace the {{PLACEHOLDER}} values with real values for your deployment.
+#   3. Restart or reload Mosquitto to apply the configuration.
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Bridge Connection
+# -----------------------------------------------------------------------------
+# Define a named bridge connection. The name is used internally by Mosquitto
+# and appears in log messages. Each bridge needs a unique name.
+connection bridge-to-master
+
+# The address (hostname or IP) and port of the remote master Pi broker.
+# Replace the placeholders with the actual host and port of your master Pi.
+#   {{MASTER_PI_HOST}} - IP address or hostname of the master Pi (e.g., 10.0.0.1)
+#   {{MASTER_PI_PORT}} - MQTT port on the master Pi (typically 1883)
+address {{MASTER_PI_HOST}}:{{MASTER_PI_PORT}}
+
+# -----------------------------------------------------------------------------
+# Topic Mappings
+# -----------------------------------------------------------------------------
+# Topics define which messages are forwarded across the bridge and in which
+# direction. The syntax is:
+#
+#   topic <pattern> <direction> <qos> [<local_prefix> <remote_prefix>]
+#
+# Directions:
+#   out  - Forward from this location broker to the master broker
+#   in   - Forward from the master broker to this location broker
+#   both - Forward in both directions
+#
+# The four-level wildcard pattern (+/+/+/+/) allows flexible topic structures
+# such as: location/zone/device/sensor/telemetry
+
+# Forward telemetry data from local devices up to the master Pi.
+# Example matching topic: warehouse-1/zone-a/sensor-03/temperature/telemetry
+topic +/+/+/+/telemetry out 1
+
+# Forward device status updates from local devices up to the master Pi.
+# Example matching topic: warehouse-1/zone-a/sensor-03/temperature/status
+topic +/+/+/+/status out 1
+
+# Receive commands from the master Pi and deliver them to local devices.
+# Example matching topic: warehouse-1/zone-a/actuator-01/relay/command
+topic +/+/+/+/command in 1
+
+# -----------------------------------------------------------------------------
+# Session Settings
+# -----------------------------------------------------------------------------
+# When set to true, the bridge does not maintain a persistent session on the
+# remote broker. This means subscriptions are re-established on each connect,
+# and any messages queued while disconnected are discarded by the remote
+# broker. Set to false if you need the master to queue QoS 1/2 messages
+# while the location Pi is offline (at the cost of resource usage on the
+# master).
+cleansession true
+
+# -----------------------------------------------------------------------------
+# Notifications
+# -----------------------------------------------------------------------------
+# When enabled, the bridge publishes notification messages about its
+# connection state to the topic $SYS/broker/connection/<connection_name>/state.
+# A value of 1 means connected, 0 means disconnected. This is useful for
+# monitoring the health of the bridge link from the master Pi.
+notifications true
+
+# -----------------------------------------------------------------------------
+# Credentials (optional)
+# -----------------------------------------------------------------------------
+# If the master Pi broker requires authentication, uncomment the lines below
+# and replace the placeholders with valid credentials.
+#remote_username {{BRIDGE_USERNAME}}
+#remote_password {{BRIDGE_PASSWORD}}
