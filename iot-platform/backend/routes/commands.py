@@ -11,6 +11,7 @@ from flask import Blueprint, request, jsonify
 import paho.mqtt.publish as mqtt_publish
 
 from models import db, Device, Command
+from routes.auth import login_required
 import config
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,7 @@ VALID_COMMAND_TYPES = {
 # POST /api/commands/<device_id>  -- issue a new command
 # ---------------------------------------------------------------------------
 @commands_bp.route("/api/commands/<device_id>", methods=["POST"])
+@login_required
 def issue_command(device_id):
     """
     Issue a command to a device.
@@ -102,6 +104,7 @@ def issue_command(device_id):
 # GET /api/commands/<device_id>  -- command history for a device
 # ---------------------------------------------------------------------------
 @commands_bp.route("/api/commands/<device_id>", methods=["GET"])
+@login_required
 def get_commands(device_id):
     """
     Return command history for a device, newest first.

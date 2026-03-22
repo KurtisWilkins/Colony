@@ -138,6 +138,35 @@ class Command(db.Model):
 # ---------------------------------------------------------------------------
 # Alert model
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# User model
+# ---------------------------------------------------------------------------
+class User(db.Model):
+    """Represents a user account for platform authentication."""
+
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(64), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    role = db.Column(db.String(16), nullable=False, default="user")  # 'admin' or 'user'
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+
+    def to_dict(self):
+        """Serialise the user to a dictionary (never include password_hash)."""
+        return {
+            "id": self.id,
+            "username": self.username,
+            "role": self.role,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Alert model
+# ---------------------------------------------------------------------------
 class Alert(db.Model):
     """Stores alerts/alarms triggered by device conditions."""
 

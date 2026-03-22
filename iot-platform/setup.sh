@@ -3,11 +3,13 @@
 # IoT Platform Setup Script for Raspberry Pi 5 (Raspberry Pi OS / Debian)
 #
 # This script installs and configures all dependencies:
-#   - PostgreSQL, Mosquitto, Python 3, Node.js
+#   - PostgreSQL, Mosquitto, Python 3, Node.js, Nginx
 #   - Creates database, schema, and user
 #   - Installs Python and Node dependencies
 #   - Builds the React frontend
 #   - Sets up systemd services for Flask API and MQTT subscriber
+#   - Configures nginx reverse proxy
+#   - Sets up auto-update cron job
 #
 # Usage: sudo bash setup.sh
 # =============================================================================
@@ -64,6 +66,7 @@ apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
+    nginx \
     curl \
     git
 
@@ -200,28 +203,71 @@ systemctl start iot-mqtt.service
 info "Systemd services created and started."
 
 # =============================================================================
-# Step 7: Final status report
+# Step 7: Configure Nginx reverse proxy
+# =============================================================================
+info "Step 7: Configuring Nginx reverse proxy..."
+
+cp "$PROJECT_DIR/nginx/iot-platform.conf" /etc/nginx/sites-available/iot-platform
+ln -sf /etc/nginx/sites-available/iot-platform /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+
+# Test and reload nginx
+nginx -t && systemctl enable nginx && systemctl reload nginx
+
+info "Nginx reverse proxy configured (port 80 -> Flask port ${FLASK_PORT})."
+
+# =============================================================================
+# Step 8: Set up auto-update cron job
+# =============================================================================
+info "Step 8: Setting up auto-update cron job..."
+
+CRON_CMD="*/5 * * * * ${PROJECT_DIR}/scripts/auto-update.sh >> /var/log/iot-auto-update.log 2>&1"
+CRON_FILE="/etc/cron.d/iot-auto-update"
+
+echo "# Auto-update Colony IoT Platform from GitHub every 5 minutes" > "$CRON_FILE"
+echo "SHELL=/bin/bash" >> "$CRON_FILE"
+echo "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" >> "$CRON_FILE"
+echo "$CRON_CMD" >> "$CRON_FILE"
+chmod 644 "$CRON_FILE"
+
+info "Auto-update cron job installed (runs every 5 minutes)."
+
+# =============================================================================
+# Step 9: Final status report
 # =============================================================================
 echo ""
 echo "=============================================="
 info "IoT Platform setup complete!"
 echo "=============================================="
 echo ""
-echo "  Flask API:      http://0.0.0.0:${FLASK_PORT}"
+echo "  Web UI:         http://0.0.0.0:80 (via Nginx)"
+echo "  Flask API:      http://0.0.0.0:${FLASK_PORT} (direct)"
 echo "  MQTT Broker:    mqtt://0.0.0.0:${MQTT_BROKER_PORT}"
 echo "  PostgreSQL:     localhost:${POSTGRES_PORT}/${POSTGRES_DB}"
 echo ""
 echo "  Services:"
 echo "    - iot-flask.service  (Flask API + React frontend)"
 echo "    - iot-mqtt.service   (MQTT subscriber)"
+echo "    - nginx              (reverse proxy)"
+echo ""
+echo "  Auto-Update:"
+echo "    - Pulls from GitHub every 5 minutes"
+echo "    - Logs: /var/log/iot-auto-update.log"
 echo ""
 echo "  Useful commands:"
 echo "    systemctl status iot-flask"
 echo "    systemctl status iot-mqtt"
+echo "    systemctl status nginx"
 echo "    journalctl -u iot-flask -f"
 echo "    journalctl -u iot-mqtt -f"
 echo ""
-echo "  Access the web UI from any device on the LAN:"
-echo "    http://<pi-ip-address>:${FLASK_PORT}"
+echo "  First-time setup:"
+echo "    1. Open http://<pi-ip> in your browser"
+echo "    2. Create your admin account on the setup screen"
+echo "    3. Only you can add additional users"
 echo ""
-warn "Remember to update .env with secure passwords before production use!"
+echo "  Remote access (No-IP):"
+echo "    sudo bash scripts/setup-noip.sh"
+echo "    Then forward port 80 on your router to this Pi."
+echo ""
+warn "Remember to update .env with a secure SECRET_KEY and passwords!"

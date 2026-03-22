@@ -29,6 +29,11 @@ SQLALCHEMY_DATABASE_URI = (
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # ---------------------------------------------------------------------------
+# Application secret key (used for JWT signing)
+# ---------------------------------------------------------------------------
+SECRET_KEY = os.getenv("SECRET_KEY", "change-me-to-a-random-secret-in-production")
+
+# ---------------------------------------------------------------------------
 # MQTT broker configuration
 # ---------------------------------------------------------------------------
 MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "localhost")
