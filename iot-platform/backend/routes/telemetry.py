@@ -7,6 +7,7 @@ from datetime import datetime
 
 from flask import Blueprint, request, jsonify
 from models import db, Device, Telemetry
+from routes.auth import login_required
 
 # Blueprint registered under /api/telemetry in app.py
 telemetry_bp = Blueprint("telemetry", __name__)
@@ -16,6 +17,7 @@ telemetry_bp = Blueprint("telemetry", __name__)
 # GET /api/telemetry/<device_id>  -- paginated telemetry history
 # ---------------------------------------------------------------------------
 @telemetry_bp.route("/api/telemetry/<device_id>", methods=["GET"])
+@login_required
 def get_telemetry(device_id):
     """
     Return telemetry records for the given device.
@@ -66,6 +68,7 @@ def get_telemetry(device_id):
 # GET /api/telemetry/latest/<device_id>  -- most recent telemetry record
 # ---------------------------------------------------------------------------
 @telemetry_bp.route("/api/telemetry/latest/<device_id>", methods=["GET"])
+@login_required
 def get_latest_telemetry(device_id):
     """Return only the single most recent telemetry record for a device."""
     # Verify the device exists

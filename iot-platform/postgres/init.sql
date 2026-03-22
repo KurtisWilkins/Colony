@@ -72,3 +72,16 @@ CREATE TABLE alerts (
 
 -- Speed up lookups of alerts for a specific device
 CREATE INDEX idx_alerts_device ON alerts (device_id);
+
+-- -----------------------------------------------------------------------------
+-- users – Platform user accounts for authentication and access control.
+-- The first user created via /api/auth/setup becomes the admin.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS users (
+    id            SERIAL        PRIMARY KEY,
+    username      VARCHAR(64)   NOT NULL UNIQUE,
+    password_hash VARCHAR(256)  NOT NULL,
+    role          VARCHAR(16)   NOT NULL DEFAULT 'user',       -- 'admin' or 'user'
+    is_active     BOOLEAN       DEFAULT TRUE,                  -- disabled users cannot log in
+    created_at    TIMESTAMP     DEFAULT NOW()
+);

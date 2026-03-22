@@ -5,6 +5,7 @@ Provides endpoints to list, register, retrieve, update, and delete IoT devices.
 
 from flask import Blueprint, request, jsonify
 from models import db, Device
+from routes.auth import login_required
 
 # Blueprint registered under /api/devices in app.py
 devices_bp = Blueprint("devices", __name__)
@@ -14,6 +15,7 @@ devices_bp = Blueprint("devices", __name__)
 # GET /api/devices  -- list all devices with optional filtering
 # ---------------------------------------------------------------------------
 @devices_bp.route("/api/devices", methods=["GET"])
+@login_required
 def list_devices():
     """
     Return a list of all registered devices.
@@ -45,6 +47,7 @@ def list_devices():
 # POST /api/devices  -- register a new device
 # ---------------------------------------------------------------------------
 @devices_bp.route("/api/devices", methods=["POST"])
+@login_required
 def register_device():
     """
     Register a new IoT device.
@@ -89,6 +92,7 @@ def register_device():
 # GET /api/devices/<device_id>  -- retrieve a single device
 # ---------------------------------------------------------------------------
 @devices_bp.route("/api/devices/<device_id>", methods=["GET"])
+@login_required
 def get_device(device_id):
     """Return a single device by its UUID, or 404 if not found."""
     device = Device.query.get(device_id)
@@ -101,6 +105,7 @@ def get_device(device_id):
 # PUT /api/devices/<device_id>  -- update device metadata
 # ---------------------------------------------------------------------------
 @devices_bp.route("/api/devices/<device_id>", methods=["PUT"])
+@login_required
 def update_device(device_id):
     """
     Update mutable fields on an existing device.
@@ -128,6 +133,7 @@ def update_device(device_id):
 # DELETE /api/devices/<device_id>  -- remove a device
 # ---------------------------------------------------------------------------
 @devices_bp.route("/api/devices/<device_id>", methods=["DELETE"])
+@login_required
 def delete_device(device_id):
     """Delete a device and all associated telemetry, commands, and alerts."""
     device = Device.query.get(device_id)

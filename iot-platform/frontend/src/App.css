@@ -9,12 +9,18 @@
   padding: 0;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, sans-serif;
   color: #333;
   background: #f0f2f5;
   line-height: 1.6;
+  overflow-x: hidden;
 }
 
 a {
@@ -23,7 +29,7 @@ a {
 }
 
 /* ============================================
-   Layout: Sidebar + Main
+   Layout: Sidebar + Main (Desktop)
    ============================================ */
 
 .app-layout {
@@ -31,7 +37,7 @@ a {
   min-height: 100vh;
 }
 
-/* Sidebar */
+/* Sidebar (desktop only) */
 .sidebar {
   width: 220px;
   min-width: 220px;
@@ -61,6 +67,7 @@ a {
   display: flex;
   flex-direction: column;
   padding: 12px 0;
+  flex: 1;
 }
 
 .nav-link {
@@ -81,6 +88,34 @@ a {
   border-left: 3px solid #4361ee;
 }
 
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-user {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-logout {
+  width: 100%;
+}
+
+/* Mobile header (hidden on desktop) */
+.mobile-header {
+  display: none;
+}
+
+/* Mobile bottom nav (hidden on desktop) */
+.mobile-nav {
+  display: none;
+}
+
 /* Main content */
 .main-content {
   flex: 1;
@@ -88,6 +123,60 @@ a {
   padding: 28px 32px;
   min-height: 100vh;
   background: #f0f2f5;
+}
+
+/* ============================================
+   Login Page
+   ============================================ */
+
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  padding: 20px;
+}
+
+.login-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.login-header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.login-header p {
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  margin-top: 8px;
+}
+
+.login-note {
+  margin-top: 16px;
+  font-size: 0.82rem;
+  color: #888;
+  text-align: center;
+  line-height: 1.5;
 }
 
 /* ============================================
@@ -297,6 +386,8 @@ a {
 
 .form-inline .form-group {
   margin-bottom: 0;
+  flex: 1;
+  min-width: 140px;
 }
 
 /* ============================================
@@ -312,10 +403,16 @@ a {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn:active {
   transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-primary {
@@ -323,7 +420,7 @@ a {
   color: #fff;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: #3a56d4;
 }
 
@@ -332,7 +429,7 @@ a {
   color: #fff;
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background: #5a6268;
 }
 
@@ -341,7 +438,7 @@ a {
   color: #fff;
 }
 
-.btn-success:hover {
+.btn-success:hover:not(:disabled) {
   background: #218838;
 }
 
@@ -350,7 +447,7 @@ a {
   color: #fff;
 }
 
-.btn-danger:hover {
+.btn-danger:hover:not(:disabled) {
   background: #c82333;
 }
 
@@ -371,6 +468,7 @@ a {
 
 .table-container {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
@@ -418,6 +516,23 @@ tbody tr:hover {
   margin-bottom: 16px;
   padding-bottom: 10px;
   border-bottom: 1px solid #eee;
+}
+
+.panel-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.panel-header-row h2 {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 /* Alerts panel */
@@ -513,6 +628,47 @@ tbody tr:hover {
 }
 
 /* ============================================
+   User Management
+   ============================================ */
+
+.user-form {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.you-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-left: 8px;
+  background: #e3e8ff;
+  color: #4361ee;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #f0f0f0;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  color: #555;
+  text-transform: capitalize;
+}
+
+.role-select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: #fff;
+}
+
+/* ============================================
    Messages / Alerts
    ============================================ */
 
@@ -553,35 +709,330 @@ tbody tr:hover {
 }
 
 /* ============================================
-   Responsive
+   Responsive: Tablet (max-width: 1024px)
    ============================================ */
 
-@media (max-width: 768px) {
-  .sidebar {
-    width: 60px;
-    min-width: 60px;
-  }
-
-  .sidebar-header h2 {
-    display: none;
-  }
-
-  .nav-link {
-    padding: 12px;
-    text-align: center;
-    font-size: 0.75rem;
-  }
-
-  .main-content {
-    margin-left: 60px;
-    padding: 16px;
-  }
-
+@media (max-width: 1024px) {
   .summary-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 
   .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+
+  .main-content {
+    padding: 24px;
+  }
+
+  .telemetry-live {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  .chart-container {
+    height: 250px;
+  }
+
+  .device-meta span {
+    display: block;
+    margin-right: 0;
+    margin-bottom: 4px;
+  }
+}
+
+/* ============================================
+   Responsive: Mobile (max-width: 768px)
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* Hide desktop sidebar */
+  .sidebar {
+    display: none;
+  }
+
+  /* Show mobile header */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: #1a1a2e;
+    color: #fff;
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .mobile-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .mobile-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Show mobile bottom nav */
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: #1a1a2e;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
+    justify-content: space-around;
+    padding: 0;
+  }
+
+  .mobile-nav-item {
+    flex: 1;
+    text-align: center;
+    padding: 12px 4px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: color 0.2s, background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-nav-item.active {
+    color: #fff;
+    background: rgba(67, 97, 238, 0.3);
+    border-top: 2px solid #4361ee;
+  }
+
+  .mobile-nav-item:hover {
+    color: #fff;
+  }
+
+  /* Main content adjustments */
+  .main-content {
+    margin-left: 0;
+    padding: 16px;
+    padding-top: 68px;  /* space for mobile header */
+    padding-bottom: 72px; /* space for bottom nav */
+    min-height: 100vh;
+  }
+
+  /* Page headers */
+  .page-header h1 {
+    font-size: 1.3rem;
+  }
+
+  /* Summary grid: 2 columns on mobile */
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .summary-card {
+    padding: 14px;
+  }
+
+  .summary-card .summary-value {
+    font-size: 1.6rem;
+  }
+
+  .summary-card .summary-title {
+    font-size: 0.75rem;
+  }
+
+  /* Card grid: single column on mobile */
+  .card-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  /* Panels */
+  .panel {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* Forms */
+  .form-inline {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .form-inline .form-group {
+    min-width: 100%;
+  }
+
+  /* Device detail */
+  .device-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .device-header h1 {
+    font-size: 1.2rem;
+  }
+
+  .device-meta span {
+    display: block;
+    margin-right: 0;
+    margin-bottom: 4px;
+  }
+
+  .telemetry-live {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .telemetry-item {
+    padding: 10px 12px;
+  }
+
+  .telemetry-item .value {
+    font-size: 1.1rem;
+  }
+
+  .chart-container {
+    height: 200px;
+  }
+
+  /* Tables: make cells more compact */
+  thead th,
+  tbody td {
+    padding: 8px 10px;
+    font-size: 0.82rem;
+  }
+
+  /* Buttons */
+  .btn-group {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .btn-group .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Breadcrumbs */
+  .breadcrumb {
+    font-size: 0.82rem;
+    margin-bottom: 14px;
+  }
+
+  /* Login */
+  .login-card {
+    padding: 28px 24px;
+  }
+
+  .login-header h1 {
+    font-size: 1.5rem;
+  }
+
+  /* User management */
+  .user-form .form-inline {
+    flex-direction: column;
+  }
+
+  .panel-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+/* ============================================
+   Responsive: Small phone (max-width: 480px)
+   ============================================ */
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 12px;
+    padding-top: 64px;
+    padding-bottom: 68px;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .summary-card {
+    padding: 12px;
+  }
+
+  .summary-card .summary-value {
+    font-size: 1.3rem;
+  }
+
+  .telemetry-live {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-container {
+    height: 180px;
+  }
+
+  .page-header h1 {
+    font-size: 1.15rem;
+  }
+
+  .login-card {
+    padding: 24px 16px;
+    box-shadow: none;
+    border-radius: 0;
+    max-width: 100%;
+  }
+
+  .login-container {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .mobile-nav-item {
+    font-size: 0.72rem;
+    padding: 10px 2px;
+  }
+}
+
+/* ============================================
+   Viewport meta tag enforcement via CSS
+   Ensures touch targets are adequate size
+   ============================================ */
+
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .btn-sm {
+    min-height: 36px;
+  }
+
+  .nav-link {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    min-height: 44px;
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+
+  .role-select {
+    min-height: 36px;
   }
 }

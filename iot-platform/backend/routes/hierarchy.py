@@ -5,6 +5,7 @@ Provides nested tree views of the organisational structure.
 
 from flask import Blueprint, jsonify
 from models import db, Device
+from routes.auth import login_required
 
 # Blueprint registered under /api/hierarchy in app.py
 hierarchy_bp = Blueprint("hierarchy", __name__)
@@ -14,6 +15,7 @@ hierarchy_bp = Blueprint("hierarchy", __name__)
 # GET /api/hierarchy  -- full nested tree
 # ---------------------------------------------------------------------------
 @hierarchy_bp.route("/api/hierarchy", methods=["GET"])
+@login_required
 def get_full_hierarchy():
     """
     Return the complete facility -> building -> unit -> device hierarchy
@@ -61,6 +63,7 @@ def get_full_hierarchy():
 # GET /api/hierarchy/<facility>  -- buildings within a facility
 # ---------------------------------------------------------------------------
 @hierarchy_bp.route("/api/hierarchy/<facility>", methods=["GET"])
+@login_required
 def get_buildings(facility):
     """Return all distinct buildings within the specified facility."""
     # Query distinct building names for this facility
@@ -83,6 +86,7 @@ def get_buildings(facility):
 # GET /api/hierarchy/<facility>/<building>  -- units within a building
 # ---------------------------------------------------------------------------
 @hierarchy_bp.route("/api/hierarchy/<facility>/<building>", methods=["GET"])
+@login_required
 def get_units(facility, building):
     """Return all distinct units within the specified facility and building."""
     rows = (
@@ -106,6 +110,7 @@ def get_units(facility, building):
 # GET /api/hierarchy/<facility>/<building>/<unit>  -- devices within a unit
 # ---------------------------------------------------------------------------
 @hierarchy_bp.route("/api/hierarchy/<facility>/<building>/<unit>", methods=["GET"])
+@login_required
 def get_devices_in_unit(facility, building, unit):
     """Return all devices within the specified facility, building, and unit."""
     devices = (

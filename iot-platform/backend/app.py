@@ -14,7 +14,7 @@ from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 
 import config
-from models import db, Device, Telemetry
+from models import db, Device, Telemetry, User
 
 # Record server start time for uptime reporting
 _server_start_time = time.time()
@@ -38,6 +38,7 @@ def create_app():
     # Load configuration from config module
     app.config["SQLALCHEMY_DATABASE_URI"] = config.SQLALCHEMY_DATABASE_URI
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = config.SQLALCHEMY_TRACK_MODIFICATIONS
+    app.config["SECRET_KEY"] = config.SECRET_KEY
 
     # Enable CORS so the React dev server can talk to the API
     CORS(app)
@@ -52,11 +53,13 @@ def create_app():
     # ------------------------------------------------------------------
     # Register API blueprints
     # ------------------------------------------------------------------
+    from routes.auth import auth_bp, login_required
     from routes.devices import devices_bp
     from routes.telemetry import telemetry_bp
     from routes.commands import commands_bp
     from routes.hierarchy import hierarchy_bp
 
+    app.register_blueprint(auth_bp)
     app.register_blueprint(devices_bp)
     app.register_blueprint(telemetry_bp)
     app.register_blueprint(commands_bp)
@@ -74,6 +77,7 @@ def create_app():
     # Status endpoint -- aggregate platform statistics
     # ------------------------------------------------------------------
     @app.route("/api/status", methods=["GET"])
+    @login_required
     def status():
         """
         Return platform-level statistics:
