@@ -14,6 +14,9 @@ import DeviceDetail from './pages/DeviceDetail';
 import RegisterDevice from './pages/RegisterDevice';
 import UserManagement from './pages/UserManagement';
 import ControlDashboard from './pages/ControlDashboard';
+import ThresholdConfig from './pages/ThresholdConfig';
+import WaterUsage from './pages/WaterUsage';
+import WiringGuide from './pages/WiringGuide';
 
 function Clock() {
   const [time, setTime] = useState(new Date());
@@ -53,6 +56,13 @@ function App() {
     ...(isAdmin ? [{ to: '/users', label: 'USERS' }] : []),
   ];
 
+  const growTentItems = [
+    { to: '/devices/control', label: '\u2B21 CONTROL' },
+    { to: '/devices/thresholds', label: '\u2261 THRESHOLDS' },
+    { to: '/water', label: '\u224B WATER USAGE' },
+    { to: '/wiring', label: '\u26A1 WIRING GUIDE' },
+  ];
+
   return (
     <div style={styles.layout}>
       {/* Desktop Sidebar */}
@@ -67,6 +77,19 @@ function App() {
               key={item.to}
               to={item.to}
               end={item.end}
+              style={({ isActive }) => ({
+                ...styles.navLink,
+                ...(isActive ? styles.navLinkActive : {}),
+              })}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+          <div style={styles.navSectionHeader}>[ GROW TENT ]</div>
+          {growTentItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
               style={({ isActive }) => ({
                 ...styles.navLink,
                 ...(isActive ? styles.navLinkActive : {}),
@@ -125,6 +148,19 @@ function App() {
                 {item.label}
               </NavLink>
             ))}
+            <div style={styles.navSectionHeader}>[ GROW TENT ]</div>
+            {growTentItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                style={({ isActive }) => ({
+                  ...styles.mobileNavLink,
+                  ...(isActive ? styles.navLinkActive : {}),
+                })}
+              >
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
         </div>
       )}
@@ -148,6 +184,12 @@ function App() {
             <Route path="/devices/:facility/:building/:unit" element={<DeviceList />} />
             <Route path="/device/:deviceId" element={<DeviceDetail />} />
             <Route path="/devices/:deviceId/control" element={<ControlDashboard />} />
+            <Route path="/devices/:deviceId/thresholds" element={<ThresholdConfig />} />
+            <Route path="/devices/:deviceId/water" element={<WaterUsage />} />
+            <Route path="/devices/control" element={<ControlDashboard />} />
+            <Route path="/devices/thresholds" element={<ThresholdConfig />} />
+            <Route path="/water" element={<WaterUsage />} />
+            <Route path="/wiring" element={<WiringGuide />} />
             <Route path="/register" element={<RegisterDevice />} />
             {isAdmin && <Route path="/users" element={<UserManagement />} />}
           </Routes>
@@ -200,6 +242,16 @@ const styles = {
     flexDirection: 'column',
     padding: 'var(--space-3) 0',
     flex: 1,
+  },
+  navSectionHeader: {
+    padding: 'var(--space-3) var(--space-4) var(--space-1)',
+    marginTop: 'var(--space-2)',
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-xs)',
+    color: 'var(--color-phosphor-ghost)',
+    textTransform: 'uppercase',
+    letterSpacing: 'var(--letter-spacing-wider)',
+    borderTop: '1px solid var(--color-border)',
   },
   navLink: {
     display: 'block',
