@@ -116,14 +116,44 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Install Node.js via NodeSource (LTS version)
+# Install Node.js LTS
 if ! command -v node > /dev/null 2>&1; then
-    info "Installing Node.js LTS..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-    apt-get install -y nodejs
-    if [ $? -ne 0 ]; then
-        err "Failed to install Node.js."
-        exit 1
+    NODE_VERSION="20.19.0"
+    ARCH=$(uname -m)
+    info "Detected architecture: $ARCH"
+
+    if [ "$ARCH" = "armv7l" ] || [ "$ARCH" = "armv6l" ]; then
+        # Raspberry Pi 32-bit (armhf) - NodeSource does not support this
+        # Download official Node.js prebuilt binary for ARM
+        info "Installing Node.js v${NODE_VERSION} from official ARM binaries..."
+        NODE_TARBALL="node-v${NODE_VERSION}-linux-${ARCH}.tar.xz"
+        NODE_URL="https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TARBALL}"
+
+        cd /tmp
+        curl -fSL "$NODE_URL" -o "$NODE_TARBALL"
+        if [ $? -ne 0 ]; then
+            err "Failed to download Node.js from $NODE_URL"
+            exit 1
+        fi
+
+        tar -xJf "$NODE_TARBALL" -C /usr/local --strip-components=1
+        rm -f "$NODE_TARBALL"
+        cd "$PROJECT_DIR"
+
+        if ! command -v node > /dev/null 2>&1; then
+            err "Node.js installation failed."
+            exit 1
+        fi
+        info "Node.js $(node --version) installed successfully."
+    else
+        # amd64 or arm64 - use NodeSource
+        info "Installing Node.js LTS via NodeSource..."
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+        apt-get install -y nodejs
+        if [ $? -ne 0 ]; then
+            err "Failed to install Node.js via NodeSource."
+            exit 1
+        fi
     fi
 else
     info "Node.js already installed: $(node --version)"
