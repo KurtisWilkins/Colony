@@ -102,6 +102,7 @@ fi
 apt-get install -y \
     postgresql \
     postgresql-contrib \
+    libpq-dev \
     mosquitto \
     mosquitto-clients \
     python3 \
@@ -119,14 +120,24 @@ fi
 # Install Node.js LTS
 if ! command -v node > /dev/null 2>&1; then
     NODE_VERSION="20.19.0"
-    ARCH=$(uname -m)
-    info "Detected architecture: $ARCH"
+    # Use dpkg architecture (not uname -m) because Raspberry Pi OS can run
+    # a 64-bit kernel (aarch64) with 32-bit userspace (armhf).
+    # NodeSource checks dpkg arch, so we must match that.
+    DPKG_ARCH=$(dpkg --print-architecture 2>/dev/null || echo "unknown")
+    UNAME_ARCH=$(uname -m)
+    info "Detected architecture: dpkg=$DPKG_ARCH, uname=$UNAME_ARCH"
 
-    if [ "$ARCH" = "armv7l" ] || [ "$ARCH" = "armv6l" ]; then
-        # Raspberry Pi 32-bit (armhf) - NodeSource does not support this
-        # Download official Node.js prebuilt binary for ARM
-        info "Installing Node.js v${NODE_VERSION} from official ARM binaries..."
-        NODE_TARBALL="node-v${NODE_VERSION}-linux-${ARCH}.tar.xz"
+    if [ "$DPKG_ARCH" = "armhf" ] || [ "$UNAME_ARCH" = "armv7l" ] || [ "$UNAME_ARCH" = "armv6l" ]; then
+        # Raspberry Pi 32-bit userspace - NodeSource does not support armhf
+        # Use the uname arch for the Node.js binary download URL
+        if [ "$UNAME_ARCH" = "aarch64" ]; then
+            # 64-bit kernel with 32-bit userspace — need armv7l binary
+            NODE_ARCH="armv7l"
+        else
+            NODE_ARCH="$UNAME_ARCH"
+        fi
+        info "Installing Node.js v${NODE_VERSION} from official ARM binaries (${NODE_ARCH})..."
+        NODE_TARBALL="node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz"
         NODE_URL="https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TARBALL}"
 
         cd /tmp
@@ -146,7 +157,7 @@ if ! command -v node > /dev/null 2>&1; then
         fi
         info "Node.js $(node --version) installed successfully."
     else
-        # amd64 or arm64 - use NodeSource
+        # amd64 or arm64 (true 64-bit userspace) - use NodeSource
         info "Installing Node.js LTS via NodeSource..."
         curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
         apt-get install -y nodejs
