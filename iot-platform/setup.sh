@@ -117,8 +117,22 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Install Node.js LTS
+# Install Node.js (need both node and npm)
+# Check for both node AND npm - the Debian nodejs package does not include npm,
+# so we may need to reinstall even if node exists.
+NEED_NODE=false
 if ! command -v node > /dev/null 2>&1; then
+    NEED_NODE=true
+elif ! command -v npm > /dev/null 2>&1; then
+    warn "Node.js found ($(node --version)) but npm is missing."
+    warn "Removing incomplete Debian nodejs and reinstalling with npm..."
+    apt-get remove -y nodejs libnode108 2>/dev/null || true
+    NEED_NODE=true
+else
+    info "Node.js already installed: $(node --version), npm: $(npm --version)"
+fi
+
+if [ "$NEED_NODE" = true ]; then
     NODE_VERSION="20.19.0"
     # Use dpkg architecture (not uname -m) because Raspberry Pi OS can run
     # a 64-bit kernel (aarch64) with 32-bit userspace (armhf).
@@ -129,14 +143,13 @@ if ! command -v node > /dev/null 2>&1; then
 
     if [ "$DPKG_ARCH" = "armhf" ] || [ "$UNAME_ARCH" = "armv7l" ] || [ "$UNAME_ARCH" = "armv6l" ]; then
         # Raspberry Pi 32-bit userspace - NodeSource does not support armhf
-        # Use the uname arch for the Node.js binary download URL
         if [ "$UNAME_ARCH" = "aarch64" ]; then
             # 64-bit kernel with 32-bit userspace — need armv7l binary
             NODE_ARCH="armv7l"
         else
             NODE_ARCH="$UNAME_ARCH"
         fi
-        info "Installing Node.js v${NODE_VERSION} from official ARM binaries (${NODE_ARCH})..."
+        info "Installing Node.js v${NODE_VERSION} from official binaries (${NODE_ARCH})..."
         NODE_TARBALL="node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz"
         NODE_URL="https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TARBALL}"
 
@@ -151,11 +164,11 @@ if ! command -v node > /dev/null 2>&1; then
         rm -f "$NODE_TARBALL"
         cd "$PROJECT_DIR"
 
-        if ! command -v node > /dev/null 2>&1; then
+        if ! command -v node > /dev/null 2>&1 || ! command -v npm > /dev/null 2>&1; then
             err "Node.js installation failed."
             exit 1
         fi
-        info "Node.js $(node --version) installed successfully."
+        info "Node.js $(node --version) with npm $(npm --version) installed successfully."
     else
         # amd64 or arm64 (true 64-bit userspace) - use NodeSource
         info "Installing Node.js LTS via NodeSource..."
@@ -166,8 +179,6 @@ if ! command -v node > /dev/null 2>&1; then
             exit 1
         fi
     fi
-else
-    info "Node.js already installed: $(node --version)"
 fi
 
 info "System packages installed successfully."
