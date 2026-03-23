@@ -65,6 +65,9 @@ def create_app():
     app.register_blueprint(commands_bp)
     app.register_blueprint(hierarchy_bp)
 
+    from routes.automation_api import automation_api_bp
+    app.register_blueprint(automation_api_bp)
+
     # ------------------------------------------------------------------
     # Health check endpoint
     # ------------------------------------------------------------------
