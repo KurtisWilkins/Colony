@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import Breadcrumb from '../components/Breadcrumb';
-import StatusBadge from '../components/StatusBadge';
+import { Breadcrumb, Card, Badge, Loader } from '../components/ui';
 
-/**
- * DeviceList page.
- * Shows all devices within a given facility/building/unit.
- * Each card displays device_name, device_type, online/offline badge, and last_seen time.
- */
 function DeviceList() {
   const { facility, building, unit } = useParams();
   const [devices, setDevices] = useState([]);
@@ -21,7 +15,6 @@ function DeviceList() {
         const res = await axios.get(
           `/api/hierarchy/${encodeURIComponent(facility)}/${encodeURIComponent(building)}/${encodeURIComponent(unit)}`
         );
-        // The response may be an array of devices or an object containing them
         const data = Array.isArray(res.data) ? res.data : res.data.devices || [];
         setDevices(data);
       } catch (err) {
@@ -34,10 +27,9 @@ function DeviceList() {
   }, [facility, building, unit]);
 
   if (loading) {
-    return <div className="loading">Loading devices...</div>;
+    return <Loader type="spin" text="LOADING DEVICES" />;
   }
 
-  // Breadcrumb navigation
   const breadcrumbItems = [
     { label: 'Facilities', path: '/devices' },
     { label: facility, path: `/devices/${encodeURIComponent(facility)}` },
@@ -45,9 +37,8 @@ function DeviceList() {
     { label: unit, path: `/devices/${encodeURIComponent(facility)}/${encodeURIComponent(building)}/${encodeURIComponent(unit)}` },
   ];
 
-  // Format the last_seen timestamp for display
   const formatLastSeen = (timestamp) => {
-    if (!timestamp) return 'Never';
+    if (!timestamp) return 'NEVER';
     const date = new Date(timestamp);
     return date.toLocaleString();
   };
@@ -56,32 +47,69 @@ function DeviceList() {
     <div>
       <Breadcrumb items={breadcrumbItems} />
 
-      <div className="page-header">
-        <h1>{unit} - Devices</h1>
+      <div style={{ marginBottom: 'var(--space-6)' }}>
+        <h1 style={styles.title}>{unit.toUpperCase()} &mdash; DEVICES</h1>
       </div>
 
       {devices.length === 0 ? (
-        <div className="empty-state">No devices found in this unit.</div>
+        <div style={styles.emptyState}>[ NO DEVICES FOUND IN THIS UNIT ]</div>
       ) : (
-        <div className="card-grid">
+        <div style={styles.cardGrid}>
           {devices.map((device) => (
-            <div
+            <Card
               key={device.id}
-              className="card card-clickable"
+              clickable
               onClick={() => navigate(`/device/${device.id}`)}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                <h3>{device.device_name}</h3>
-                <StatusBadge is_online={device.is_online} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                <h3 style={styles.cardTitle}>{device.device_name.toUpperCase()}</h3>
+                <Badge variant={device.is_online ? 'online' : 'offline'} />
               </div>
-              <p className="card-meta">Type: {device.device_type}</p>
-              <p className="card-meta">Last seen: {formatLastSeen(device.last_seen)}</p>
-            </div>
+              <p style={styles.cardMeta}>TYPE: {device.device_type.toUpperCase()}</p>
+              <p style={styles.cardMeta}>LAST SEEN: {formatLastSeen(device.last_seen)}</p>
+            </Card>
           ))}
         </div>
       )}
     </div>
   );
 }
+
+const styles = {
+  title: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 'var(--text-2xl)',
+    color: 'var(--color-phosphor-primary)',
+    textShadow: 'var(--glow-text)',
+    letterSpacing: 'var(--letter-spacing-wider)',
+    margin: 0,
+    fontWeight: 'normal',
+  },
+  cardGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+    gap: 'var(--space-4)',
+  },
+  cardTitle: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-md)',
+    color: 'var(--color-phosphor-primary)',
+    margin: 0,
+    fontWeight: 'normal',
+  },
+  cardMeta: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--color-phosphor-dim)',
+    margin: 0,
+    marginTop: 'var(--space-1)',
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: 'var(--space-8)',
+    color: 'var(--color-text-muted)',
+    fontFamily: 'var(--font-mono)',
+  },
+};
 
 export default DeviceList;

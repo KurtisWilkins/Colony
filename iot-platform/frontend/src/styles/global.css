@@ -1,0 +1,189 @@
+/* ============================================
+   PHOSPHOR TERMINAL — Global Base Styles
+   ============================================ */
+
+/* Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  color: var(--color-phosphor-primary);
+  background: var(--color-bg-base);
+  line-height: var(--leading-normal);
+  overflow-x: hidden;
+  animation: screenFlicker 4s infinite;
+}
+
+/* Scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, var(--scanline-opacity)) 2px,
+    rgba(0, 0, 0, var(--scanline-opacity)) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Subtle screen flicker */
+@keyframes screenFlicker {
+  0% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.98; }
+  94% { opacity: 1; }
+  96% { opacity: 0.97; }
+  97% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+/* Links */
+a {
+  text-decoration: none;
+  color: var(--color-cyan-accent);
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-phosphor-bright);
+  text-shadow: var(--glow-text);
+}
+
+/* Scrollbar (webkit) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-phosphor-ghost);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-phosphor-dim);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-phosphor-ghost) var(--color-bg-base);
+}
+
+/* Selection */
+::selection {
+  background: var(--color-phosphor-ghost);
+  color: var(--color-phosphor-bright);
+}
+
+/* Global utility classes */
+.glow-text {
+  text-shadow: var(--glow-text);
+}
+
+.screen-border {
+  border: var(--border-width) var(--border-style) var(--color-border);
+  box-shadow: var(--glow-sm);
+  background: var(--color-bg-surface);
+}
+
+/* Caret color for all inputs */
+input, textarea, select {
+  caret-color: var(--color-phosphor-primary);
+}
+
+/* Power-on flash animation */
+@keyframes powerOn {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  12% { opacity: 0.3; }
+  14% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+/* Card/panel mount animation */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Button click flash */
+@keyframes clickFlash {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.5); }
+  100% { filter: brightness(1); }
+}
+
+/* Blink cursor */
+@keyframes blinkCursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Data update flash */
+@keyframes dataFlash {
+  0% { color: var(--color-phosphor-bright); text-shadow: var(--glow-text); }
+  100% { color: var(--color-phosphor-primary); text-shadow: none; }
+}
+
+/* Scanline wipe for modals */
+@keyframes scanlineWipe {
+  from {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0;
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+
+/* Typing cursor */
+@keyframes typingDots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+/* Scrolling binary background for login */
+@keyframes scrollBinary {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+/* Interactive cursor */
+button, [role="button"], .clickable {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}

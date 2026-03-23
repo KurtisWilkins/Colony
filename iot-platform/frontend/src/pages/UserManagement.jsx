@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import { Card, Button, Input, Select, Badge, Table, AlertBanner, Loader } from '../components/ui';
 
 function UserManagement() {
   const { user: currentUser } = useAuth();
@@ -9,7 +10,6 @@ function UserManagement() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // New user form
   const [showForm, setShowForm] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -20,20 +20,21 @@ function UserManagement() {
       const res = await axios.get('/api/auth/users');
       setUsers(res.data);
     } catch (err) {
-      setError('Failed to load users.');
+      setError('FAILED TO LOAD USERS.');
     }
     setLoading(false);
   };
 
   useEffect(() => { fetchUsers(); }, []);
 
+  const clearMessages = () => { setError(''); setSuccess(''); };
+
   const handleCreate = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    clearMessages();
 
     if (!newUsername.trim() || !newPassword) {
-      setError('Username and password are required.');
+      setError('USERNAME AND PASSWORD ARE REQUIRED.');
       return;
     }
 
@@ -43,173 +44,181 @@ function UserManagement() {
         password: newPassword,
         role: newRole,
       });
-      setSuccess(`User "${newUsername}" created successfully.`);
+      setSuccess(`USER "${newUsername.toUpperCase()}" CREATED SUCCESSFULLY.`);
       setNewUsername('');
       setNewPassword('');
       setNewRole('user');
       setShowForm(false);
       fetchUsers();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create user.');
+      setError(err.response?.data?.error || 'FAILED TO CREATE USER.');
     }
   };
 
   const handleToggleActive = async (userId, currentlyActive) => {
-    setError('');
-    setSuccess('');
+    clearMessages();
     try {
       await axios.put(`/api/auth/users/${userId}`, { is_active: !currentlyActive });
-      setSuccess(`User ${currentlyActive ? 'disabled' : 'enabled'} successfully.`);
+      setSuccess(`USER ${currentlyActive ? 'DISABLED' : 'ENABLED'} SUCCESSFULLY.`);
       fetchUsers();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update user.');
+      setError(err.response?.data?.error || 'FAILED TO UPDATE USER.');
     }
   };
 
   const handleDelete = async (userId, username) => {
-    setError('');
-    setSuccess('');
+    clearMessages();
     if (!window.confirm(`Are you sure you want to delete user "${username}"? This cannot be undone.`)) {
       return;
     }
     try {
       await axios.delete(`/api/auth/users/${userId}`);
-      setSuccess(`User "${username}" deleted.`);
+      setSuccess(`USER "${username.toUpperCase()}" DELETED.`);
       fetchUsers();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to delete user.');
+      setError(err.response?.data?.error || 'FAILED TO DELETE USER.');
     }
   };
 
-  const handleRoleChange = async (userId, newRole) => {
-    setError('');
-    setSuccess('');
+  const handleRoleChange = async (userId, role) => {
+    clearMessages();
     try {
-      await axios.put(`/api/auth/users/${userId}`, { role: newRole });
-      setSuccess('Role updated successfully.');
+      await axios.put(`/api/auth/users/${userId}`, { role });
+      setSuccess('ROLE UPDATED SUCCESSFULLY.');
       fetchUsers();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update role.');
+      setError(err.response?.data?.error || 'FAILED TO UPDATE ROLE.');
     }
   };
 
-  if (loading) return <div className="loading">Loading users...</div>;
+  if (loading) return <Loader type="spin" text="LOADING USERS" />;
+
+  const columns = ['USERNAME', 'ROLE', 'STATUS', 'CREATED', 'ACTIONS'];
+  const data = users.map((u) => [
+    <span>
+      <strong style={{ color: 'var(--color-phosphor-primary)' }}>{u.username.toUpperCase()}</strong>
+      {u.id === currentUser.id && (
+        <Badge variant="info" style={{ marginLeft: 'var(--space-2)' }}>YOU</Badge>
+      )}
+    </span>,
+    u.id !== currentUser.id ? (
+      <Select
+        value={u.role}
+        onChange={(e) => handleRoleChange(u.id, e.target.value)}
+        options={[{ value: 'user', label: 'USER' }, { value: 'admin', label: 'ADMIN' }]}
+        style={{ width: 110, marginBottom: 0 }}
+      />
+    ) : (
+      <Badge variant="info">{u.role.toUpperCase()}</Badge>
+    ),
+    <Badge variant={u.is_active ? 'online' : 'offline'}>
+      {u.is_active ? 'ACTIVE' : 'DISABLED'}
+    </Badge>,
+    new Date(u.created_at).toLocaleDateString(),
+    u.id !== currentUser.id ? (
+      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+        <Button
+          size="sm"
+          variant={u.is_active ? 'secondary' : 'primary'}
+          onClick={() => handleToggleActive(u.id, u.is_active)}
+        >
+          {u.is_active ? 'DISABLE' : 'ENABLE'}
+        </Button>
+        <Button size="sm" variant="danger" onClick={() => handleDelete(u.id, u.username)}>
+          DELETE
+        </Button>
+      </div>
+    ) : null,
+  ]);
 
   return (
     <div>
-      <div className="page-header">
-        <h1>User Management</h1>
-        <p>Manage user accounts and access control</p>
+      <div style={{ marginBottom: 'var(--space-6)' }}>
+        <h1 style={styles.title}>USER MANAGEMENT</h1>
+        <p style={styles.subtitle}>MANAGE USER ACCOUNTS AND ACCESS CONTROL</p>
       </div>
 
-      {error && <div className="message message-error">{error}</div>}
-      {success && <div className="message message-success">{success}</div>}
+      {error && <AlertBanner variant="error" dismissible onDismiss={() => setError('')}>{error}</AlertBanner>}
+      {success && <AlertBanner variant="success" dismissible onDismiss={() => setSuccess('')}>{success}</AlertBanner>}
 
-      <div className="panel">
-        <div className="panel-header-row">
-          <h2>Users</h2>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Cancel' : 'Add User'}
-          </button>
-        </div>
-
+      <Card
+        title="USERS"
+        headerAction={
+          <Button size="sm" variant={showForm ? 'secondary' : 'primary'} onClick={() => setShowForm(!showForm)}>
+            {showForm ? 'CANCEL' : 'ADD USER'}
+          </Button>
+        }
+      >
         {showForm && (
-          <form onSubmit={handleCreate} className="user-form">
-            <div className="form-inline">
-              <div className="form-group">
-                <label>Username</label>
-                <input
+          <form
+            onSubmit={handleCreate}
+            style={{
+              padding: 'var(--space-4)',
+              background: 'var(--color-bg-base)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-sm)',
+              marginBottom: 'var(--space-4)',
+            }}
+          >
+            <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <Input
+                  label="USERNAME"
+                  prefix="> "
                   type="text"
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder="Username"
+                  placeholder="USERNAME"
                 />
               </div>
-              <div className="form-group">
-                <label>Password</label>
-                <input
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <Input
+                  label="PASSWORD"
+                  prefix="> "
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Min 6 characters"
+                  placeholder="MIN 6 CHARACTERS"
                 />
               </div>
-              <div className="form-group">
-                <label>Role</label>
-                <select value={newRole} onChange={(e) => setNewRole(e.target.value)}>
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
+              <div style={{ minWidth: 110 }}>
+                <Select
+                  label="ROLE"
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  options={[{ value: 'user', label: 'USER' }, { value: 'admin', label: 'ADMIN' }]}
+                />
               </div>
-              <button type="submit" className="btn btn-success btn-sm">Create</button>
+              <div style={{ marginBottom: 'var(--space-4)' }}>
+                <Button type="submit" size="sm">CREATE</Button>
+              </div>
             </div>
           </form>
         )}
 
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td>
-                    <strong>{u.username}</strong>
-                    {u.id === currentUser.id && <span className="you-badge">You</span>}
-                  </td>
-                  <td>
-                    {u.id !== currentUser.id ? (
-                      <select
-                        value={u.role}
-                        onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                        className="role-select"
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    ) : (
-                      <span className="role-badge">{u.role}</span>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`status-badge ${u.is_active ? 'online' : 'offline'}`}>
-                      {u.is_active ? 'Active' : 'Disabled'}
-                    </span>
-                  </td>
-                  <td>{new Date(u.created_at).toLocaleDateString()}</td>
-                  <td>
-                    {u.id !== currentUser.id && (
-                      <div className="btn-group">
-                        <button
-                          className={`btn btn-sm ${u.is_active ? 'btn-secondary' : 'btn-success'}`}
-                          onClick={() => handleToggleActive(u.id, u.is_active)}
-                        >
-                          {u.is_active ? 'Disable' : 'Enable'}
-                        </button>
-                        <button
-                          className="btn btn-sm btn-danger"
-                          onClick={() => handleDelete(u.id, u.username)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        <Table columns={columns} data={data} />
+      </Card>
     </div>
   );
 }
+
+const styles = {
+  title: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 'var(--text-2xl)',
+    color: 'var(--color-phosphor-primary)',
+    textShadow: 'var(--glow-text)',
+    letterSpacing: 'var(--letter-spacing-wider)',
+    margin: 0,
+    fontWeight: 'normal',
+  },
+  subtitle: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--color-phosphor-dim)',
+    letterSpacing: 'var(--letter-spacing-wide)',
+    marginTop: 'var(--space-1)',
+  },
+};
 
 export default UserManagement;

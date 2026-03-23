@@ -1,30 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import SummaryCard from '../components/SummaryCard';
+import { StatCard, Card, Loader, AlertBanner } from '../components/ui';
 
-/**
- * Dashboard page.
- * Fetches platform status and hierarchy data to display summary cards.
- * Auto-refreshes status every 30 seconds.
- */
 function Dashboard() {
   const [status, setStatus] = useState(null);
   const [hierarchy, setHierarchy] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch status data from the API
   const fetchStatus = async () => {
     try {
       const res = await axios.get('/api/status');
       setStatus(res.data);
     } catch (err) {
       console.error('Failed to fetch status:', err);
-      setError('Failed to fetch platform status.');
+      setError('FAILED TO FETCH PLATFORM STATUS.');
     }
   };
 
-  // Fetch hierarchy data to compute facility count
   const fetchHierarchy = async () => {
     try {
       const res = await axios.get('/api/hierarchy');
@@ -35,28 +28,24 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    // Initial fetch
     const loadData = async () => {
       setLoading(true);
       await Promise.all([fetchStatus(), fetchHierarchy()]);
       setLoading(false);
     };
     loadData();
-
-    // Auto-refresh status every 30 seconds
     const interval = setInterval(fetchStatus, 30000);
     return () => clearInterval(interval);
   }, []);
 
   if (loading) {
-    return <div className="loading">Loading dashboard...</div>;
+    return <Loader type="spin" text="LOADING DASHBOARD" />;
   }
 
   if (error) {
-    return <div className="message message-error">{error}</div>;
+    return <AlertBanner variant="error">{error}</AlertBanner>;
   }
 
-  // Compute summary values from status and hierarchy data
   const facilitiesArr = hierarchy?.facilities || [];
   const totalFacilities = facilitiesArr.length;
   const onlineCount = status?.online_devices ?? 0;
@@ -66,29 +55,61 @@ function Dashboard() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Dashboard</h1>
-        <p>Platform overview and real-time status</p>
+      <div style={styles.header}>
+        <h1 style={styles.title}>DASHBOARD</h1>
+        <p style={styles.subtitle}>PLATFORM OVERVIEW AND REAL-TIME STATUS</p>
       </div>
 
-      {/* Summary cards */}
-      <div className="summary-grid">
-        <SummaryCard title="Facilities" value={totalFacilities} subtitle="Registered locations" />
-        <SummaryCard title="Total Devices" value={totalDevices} subtitle="All registered devices" />
-        <SummaryCard title="Online" value={onlineCount} subtitle="Currently reporting" />
-        <SummaryCard title="Offline" value={offlineCount} subtitle="Not reporting" />
-        <SummaryCard title="Telemetry Records" value={totalTelemetry} subtitle="Total stored" />
+      <div style={styles.statGrid}>
+        <StatCard value={totalFacilities} label="FACILITIES" />
+        <StatCard value={totalDevices} label="TOTAL DEVICES" />
+        <StatCard value={onlineCount} label="ONLINE" trend={onlineCount > 0 ? 'up' : null} />
+        <StatCard value={offlineCount} label="OFFLINE" trend={offlineCount > 0 ? 'down' : null} />
+        <StatCard value={totalTelemetry.toLocaleString()} label="TELEMETRY RECORDS" />
       </div>
 
-      {/* Alerts panel - scaffold with empty state */}
-      <div className="panel alerts-panel">
-        <h2>Alerts</h2>
-        <div className="empty-state">
-          No alerts at this time.
+      <Card title="ALERTS">
+        <div style={styles.emptyState}>
+          [ NO ALERTS AT THIS TIME ]
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
+
+const styles = {
+  header: {
+    marginBottom: 'var(--space-6)',
+  },
+  title: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 'var(--text-2xl)',
+    color: 'var(--color-phosphor-primary)',
+    textShadow: 'var(--glow-text)',
+    letterSpacing: 'var(--letter-spacing-wider)',
+    margin: 0,
+    fontWeight: 'normal',
+  },
+  subtitle: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--color-phosphor-dim)',
+    letterSpacing: 'var(--letter-spacing-wide)',
+    marginTop: 'var(--space-1)',
+  },
+  statGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    gap: 'var(--space-4)',
+    marginBottom: 'var(--space-6)',
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: 'var(--space-8)',
+    color: 'var(--color-text-muted)',
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-base)',
+  },
+};
 
 export default Dashboard;
