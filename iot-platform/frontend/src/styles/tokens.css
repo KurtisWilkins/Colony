@@ -1,0 +1,84 @@
+/* ============================================
+   PHOSPHOR TERMINAL — Design Tokens
+   ============================================ */
+
+:root {
+  /* Color Palette */
+  --color-bg-base: #0a0a0a;
+  --color-bg-surface: #0f1a0f;
+  --color-bg-elevated: #162616;
+  --color-bg-input: #0d150d;
+
+  --color-phosphor-primary: #00ff41;
+  --color-phosphor-bright: #39ff14;
+  --color-phosphor-dim: #00aa2a;
+  --color-phosphor-ghost: #004d12;
+  --color-phosphor-glow: rgba(0, 255, 65, 0.15);
+
+  --color-amber: #ffb000;
+  --color-amber-dim: #7a5500;
+
+  --color-red-alert: #ff3131;
+  --color-red-dim: #5a0000;
+
+  --color-cyan-accent: #00fff7;
+
+  --color-text-primary: #00ff41;
+  --color-text-secondary: #00aa2a;
+  --color-text-muted: #005518;
+  --color-text-inverse: #0a0a0a;
+
+  --color-border: #003a10;
+  --color-border-active: #00ff41;
+  --color-border-focus: #39ff14;
+
+  /* Typography */
+  --font-mono: 'Share Tech Mono', 'Courier New', 'Lucida Console', monospace;
+  --font-display: 'VT323', 'Share Tech Mono', monospace;
+
+  --text-xs: 0.65rem;
+  --text-sm: 0.75rem;
+  --text-base: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 3rem;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.6;
+
+  --letter-spacing-wide: 0.08em;
+  --letter-spacing-wider: 0.15em;
+
+  /* Spacing (8pt grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Effects */
+  --glow-sm: 0 0 6px rgba(0, 255, 65, 0.4);
+  --glow-md: 0 0 12px rgba(0, 255, 65, 0.5), 0 0 24px rgba(0, 255, 65, 0.2);
+  --glow-lg: 0 0 20px rgba(0, 255, 65, 0.6), 0 0 40px rgba(0, 255, 65, 0.25);
+  --glow-text: 0 0 8px rgba(0, 255, 65, 0.8);
+
+  --scanline-opacity: 0.04;
+  --flicker-speed: 0.15s;
+
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+
+  --border-width: 1px;
+  --border-style: solid;
+
+  /* Transitions */
+  --transition-fast: 80ms ease;
+  --transition-base: 150ms ease;
+  --transition-slow: 300ms ease;
+}

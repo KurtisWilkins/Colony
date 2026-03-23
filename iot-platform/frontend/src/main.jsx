@@ -3,9 +3,10 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import App from './App';
+import './styles/tokens.css';
+import './styles/global.css';
 import './App.css';
 
-// Mount the app with BrowserRouter and AuthProvider
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>

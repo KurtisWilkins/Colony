@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import Breadcrumb from '../components/Breadcrumb';
+import { Breadcrumb, Card, Loader } from '../components/ui';
 
-/**
- * BuildingList page.
- * Shows all buildings within a given facility.
- */
 function BuildingList() {
   const { facility } = useParams();
   const [buildings, setBuildings] = useState(null);
@@ -28,45 +24,74 @@ function BuildingList() {
   }, [facility]);
 
   if (loading) {
-    return <div className="loading">Loading buildings...</div>;
+    return <Loader type="spin" text="LOADING BUILDINGS" />;
   }
 
-  // Breadcrumb navigation
   const breadcrumbItems = [
     { label: 'Facilities', path: '/devices' },
     { label: facility, path: `/devices/${encodeURIComponent(facility)}` },
   ];
 
-  // Extract buildings array from the API response
   const buildingsList = buildings?.buildings || [];
 
   return (
     <div>
       <Breadcrumb items={breadcrumbItems} />
 
-      <div className="page-header">
-        <h1>{facility} - Buildings</h1>
+      <div style={styles.header}>
+        <h1 style={styles.title}>{facility.toUpperCase()} &mdash; BUILDINGS</h1>
       </div>
 
       {buildingsList.length === 0 ? (
-        <div className="empty-state">No buildings found in this facility.</div>
+        <div style={styles.emptyState}>[ NO BUILDINGS FOUND IN THIS FACILITY ]</div>
       ) : (
-        <div className="card-grid">
+        <div style={styles.cardGrid}>
           {buildingsList.map((bld) => (
-            <div
+            <Card
               key={bld.name}
-              className="card card-clickable"
+              clickable
               onClick={() =>
                 navigate(`/devices/${encodeURIComponent(facility)}/${encodeURIComponent(bld.name)}`)
               }
             >
-              <h3>{bld.name}</h3>
-            </div>
+              <h3 style={styles.cardTitle}>{bld.name.toUpperCase()}</h3>
+            </Card>
           ))}
         </div>
       )}
     </div>
   );
 }
+
+const styles = {
+  header: { marginBottom: 'var(--space-6)' },
+  title: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 'var(--text-2xl)',
+    color: 'var(--color-phosphor-primary)',
+    textShadow: 'var(--glow-text)',
+    letterSpacing: 'var(--letter-spacing-wider)',
+    margin: 0,
+    fontWeight: 'normal',
+  },
+  cardGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+    gap: 'var(--space-4)',
+  },
+  cardTitle: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-md)',
+    color: 'var(--color-phosphor-primary)',
+    margin: 0,
+    fontWeight: 'normal',
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: 'var(--space-8)',
+    color: 'var(--color-text-muted)',
+    fontFamily: 'var(--font-mono)',
+  },
+};
 
 export default BuildingList;

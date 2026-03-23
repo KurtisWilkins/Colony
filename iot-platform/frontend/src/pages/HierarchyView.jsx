@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Card, Loader, Badge } from '../components/ui';
 
-/**
- * HierarchyView page.
- * Displays all facilities as cards.
- * Each card shows the facility name, total device count, and online count.
- */
 function HierarchyView() {
   const [hierarchy, setHierarchy] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,28 +23,16 @@ function HierarchyView() {
   }, []);
 
   if (loading) {
-    return <div className="loading">Loading facilities...</div>;
+    return <Loader type="spin" text="LOADING FACILITIES" />;
   }
 
   const facilitiesArr = hierarchy?.facilities || [];
 
-  if (facilitiesArr.length === 0) {
-    return (
-      <div>
-        <div className="page-header">
-          <h1>Facilities</h1>
-        </div>
-        <div className="empty-state">No facilities found. Register a device to get started.</div>
-      </div>
-    );
-  }
-
-  // Count devices and online devices per facility
   const facilityStats = (fac) => {
     let deviceCount = 0;
     let onlineCount = 0;
-    for (const bld of (fac.buildings || [])) {
-      for (const u of (bld.units || [])) {
+    for (const bld of fac.buildings || []) {
+      for (const u of bld.units || []) {
         const devices = u.devices || [];
         deviceCount += devices.length;
         onlineCount += devices.filter((d) => d.is_online).length;
@@ -59,31 +43,83 @@ function HierarchyView() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Facilities</h1>
-        <p>Select a facility to explore its devices</p>
+      <div style={styles.header}>
+        <h1 style={styles.title}>FACILITIES</h1>
+        <p style={styles.subtitle}>SELECT A FACILITY TO EXPLORE ITS DEVICES</p>
       </div>
 
-      <div className="card-grid">
-        {facilitiesArr.map((fac) => {
-          const stats = facilityStats(fac);
-          return (
-            <div
-              key={fac.name}
-              className="card card-clickable"
-              onClick={() => navigate(`/devices/${encodeURIComponent(fac.name)}`)}
-            >
-              <h3>{fac.name}</h3>
-              <p className="card-meta">
-                {stats.deviceCount} device(s) &middot;{' '}
-                {stats.onlineCount} online
-              </p>
-            </div>
-          );
-        })}
-      </div>
+      {facilitiesArr.length === 0 ? (
+        <div style={styles.emptyState}>
+          [ NO FACILITIES FOUND. REGISTER A DEVICE TO GET STARTED. ]
+        </div>
+      ) : (
+        <div style={styles.cardGrid}>
+          {facilitiesArr.map((fac) => {
+            const stats = facilityStats(fac);
+            return (
+              <Card
+                key={fac.name}
+                clickable
+                onClick={() => navigate(`/devices/${encodeURIComponent(fac.name)}`)}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                  <h3 style={styles.cardTitle}>{fac.name.toUpperCase()}</h3>
+                  <Badge variant={stats.onlineCount > 0 ? 'online' : 'offline'}>
+                    {stats.onlineCount} ONLINE
+                  </Badge>
+                </div>
+                <p style={styles.cardMeta}>{stats.deviceCount} DEVICE(S)</p>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
+
+const styles = {
+  header: { marginBottom: 'var(--space-6)' },
+  title: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 'var(--text-2xl)',
+    color: 'var(--color-phosphor-primary)',
+    textShadow: 'var(--glow-text)',
+    letterSpacing: 'var(--letter-spacing-wider)',
+    margin: 0,
+    fontWeight: 'normal',
+  },
+  subtitle: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--color-phosphor-dim)',
+    letterSpacing: 'var(--letter-spacing-wide)',
+    marginTop: 'var(--space-1)',
+  },
+  cardGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+    gap: 'var(--space-4)',
+  },
+  cardTitle: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-md)',
+    color: 'var(--color-phosphor-primary)',
+    margin: 0,
+    fontWeight: 'normal',
+  },
+  cardMeta: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--color-phosphor-dim)',
+    margin: 0,
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: 'var(--space-8)',
+    color: 'var(--color-text-muted)',
+    fontFamily: 'var(--font-mono)',
+  },
+};
 
 export default HierarchyView;

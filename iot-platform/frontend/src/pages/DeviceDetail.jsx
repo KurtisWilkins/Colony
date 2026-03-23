@@ -10,34 +10,25 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import StatusBadge from '../components/StatusBadge';
+import { Card, Badge, Button, Input, Select, Textarea, AlertBanner, Loader, Table } from '../components/ui';
+import { terminalChartTheme, terminalLineDataset } from '../styles/chartTheme';
 
-// Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
-/**
- * DeviceDetail page.
- * Shows full device info, live telemetry, telemetry chart, command panel, and command history.
- */
 function DeviceDetail() {
   const { deviceId } = useParams();
 
-  // Device info state
   const [device, setDevice] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Telemetry state
   const [latestTelemetry, setLatestTelemetry] = useState(null);
   const [telemetryHistory, setTelemetryHistory] = useState([]);
   const [selectedKey, setSelectedKey] = useState('');
-
-  // Command state
   const [commands, setCommands] = useState([]);
   const [commandMsg, setCommandMsg] = useState(null);
 
-  // Command form state
   const [relayNumber, setRelayNumber] = useState(1);
   const [relayState, setRelayState] = useState('on');
   const [pollingInterval, setPollingInterval] = useState(60);
@@ -45,7 +36,6 @@ function DeviceDetail() {
   const [motorSteps, setMotorSteps] = useState(100);
   const [customCommand, setCustomCommand] = useState('');
 
-  // Fetch device info
   const fetchDevice = useCallback(async () => {
     try {
       const res = await axios.get(`/api/devices/${deviceId}`);
@@ -55,25 +45,20 @@ function DeviceDetail() {
     }
   }, [deviceId]);
 
-  // Fetch latest telemetry
   const fetchLatestTelemetry = useCallback(async () => {
     try {
       const res = await axios.get(`/api/telemetry/latest/${deviceId}`);
       setLatestTelemetry(res.data);
     } catch (err) {
-      // Telemetry may not exist yet; that's okay
       console.error('Failed to fetch latest telemetry:', err);
     }
   }, [deviceId]);
 
-  // Fetch telemetry history
   const fetchTelemetryHistory = useCallback(async () => {
     try {
       const res = await axios.get(`/api/telemetry/${deviceId}?limit=50`);
       const data = Array.isArray(res.data) ? res.data : res.data.telemetry || [];
       setTelemetryHistory(data);
-
-      // Auto-select first payload key if none selected
       if (!selectedKey && data.length > 0 && data[0].payload) {
         const keys = Object.keys(data[0].payload);
         if (keys.length > 0) setSelectedKey(keys[0]);
@@ -83,7 +68,6 @@ function DeviceDetail() {
     }
   }, [deviceId, selectedKey]);
 
-  // Fetch command history
   const fetchCommands = useCallback(async () => {
     try {
       const res = await axios.get(`/api/commands/${deviceId}`);
@@ -94,7 +78,6 @@ function DeviceDetail() {
     }
   }, [deviceId]);
 
-  // Initial data load
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
@@ -104,45 +87,33 @@ function DeviceDetail() {
     loadAll();
   }, [fetchDevice, fetchLatestTelemetry, fetchTelemetryHistory, fetchCommands]);
 
-  // Auto-refresh latest telemetry every 10 seconds
   useEffect(() => {
     const interval = setInterval(fetchLatestTelemetry, 10000);
     return () => clearInterval(interval);
   }, [fetchLatestTelemetry]);
 
-  // Send a command to the device
   const sendCommand = async (commandType, payload) => {
     try {
-      await axios.post(`/api/commands/${deviceId}`, {
-        command_type: commandType,
-        payload: payload,
-      });
-      setCommandMsg({ type: 'success', text: `Command "${commandType}" sent successfully.` });
-      // Refresh command history
+      await axios.post(`/api/commands/${deviceId}`, { command_type: commandType, payload });
+      setCommandMsg({ type: 'success', text: `COMMAND "${commandType.toUpperCase()}" SENT SUCCESSFULLY.` });
       fetchCommands();
     } catch (err) {
-      setCommandMsg({
-        type: 'error',
-        text: `Failed to send command: ${err.response?.data?.error || err.message}`,
-      });
+      setCommandMsg({ type: 'error', text: `FAILED TO SEND COMMAND: ${err.response?.data?.error || err.message}` });
     }
-    // Clear message after 5 seconds
     setTimeout(() => setCommandMsg(null), 5000);
   };
 
   if (loading) {
-    return <div className="loading">Loading device details...</div>;
+    return <Loader type="spin" text="LOADING DEVICE" />;
   }
 
   if (!device) {
-    return <div className="message message-error">Device not found.</div>;
+    return <AlertBanner variant="error">DEVICE NOT FOUND.</AlertBanner>;
   }
 
-  // Extract payload keys from telemetry history for the chart dropdown
   const payloadKeys = [];
   if (telemetryHistory.length > 0 && telemetryHistory[0].payload) {
     for (const key of Object.keys(telemetryHistory[0].payload)) {
-      // Only include numeric values that can be charted
       const val = telemetryHistory[0].payload[key];
       if (typeof val === 'number' || !isNaN(Number(val))) {
         payloadKeys.push(key);
@@ -150,296 +121,331 @@ function DeviceDetail() {
     }
   }
 
-  // Build chart data for the selected key
-  // Reverse so oldest is first (left) on x-axis
   const chartHistory = [...telemetryHistory].reverse();
   const chartData = {
-    labels: chartHistory.map((t) =>
-      new Date(t.received_at).toLocaleTimeString()
-    ),
+    labels: chartHistory.map((t) => new Date(t.received_at).toLocaleTimeString('en-US', { hour12: false })),
     datasets: [
       {
-        label: selectedKey,
+        ...terminalLineDataset,
+        label: selectedKey.toUpperCase(),
         data: chartHistory.map((t) => {
           const val = t.payload?.[selectedKey];
           return typeof val === 'number' ? val : Number(val) || 0;
         }),
-        borderColor: '#4361ee',
-        backgroundColor: 'rgba(67, 97, 238, 0.1)',
-        tension: 0.3,
-        fill: true,
       },
     ],
   };
 
   const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
+    ...terminalChartTheme,
     plugins: {
-      legend: { display: true },
-      title: { display: false },
+      ...terminalChartTheme.plugins,
+      legend: { ...terminalChartTheme.plugins.legend, display: true },
     },
     scales: {
-      x: { title: { display: true, text: 'Time' } },
-      y: { title: { display: true, text: selectedKey } },
+      x: {
+        ...terminalChartTheme.scales.x,
+        title: { ...terminalChartTheme.scales.x.title, display: true, text: 'TIME' },
+      },
+      y: {
+        ...terminalChartTheme.scales.y,
+        title: { ...terminalChartTheme.scales.y.title, display: true, text: selectedKey.toUpperCase() },
+      },
     },
   };
 
+  // Command history table data
+  const cmdColumns = ['ISSUED AT', 'COMMAND TYPE', 'PAYLOAD', 'ACK'];
+  const cmdData = commands.map((cmd) => [
+    new Date(cmd.issued_at).toLocaleString(),
+    cmd.command_type.toUpperCase(),
+    <code style={{ fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-dim)' }}>{JSON.stringify(cmd.payload)}</code>,
+    <Badge variant={cmd.acknowledged ? 'online' : 'offline'}>{cmd.acknowledged ? 'YES' : 'NO'}</Badge>,
+  ]);
+
   return (
     <div>
-      {/* Device metadata header */}
-      <div className="panel">
-        <div className="device-header">
-          <h1>{device.device_name}</h1>
-          <StatusBadge is_online={device.is_online} />
+      {/* Device info header */}
+      <Card title="DEVICE INFO" style={{ marginBottom: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+          <h1 style={styles.deviceName}>{device.device_name.toUpperCase()}</h1>
+          <Badge variant={device.is_online ? 'online' : 'offline'} />
         </div>
-        <div className="device-meta">
-          <span><strong>Facility:</strong> {device.facility}</span>
-          <span><strong>Building:</strong> {device.building}</span>
-          <span><strong>Unit:</strong> {device.unit}</span>
-          <span><strong>Type:</strong> {device.device_type}</span>
+        <div style={styles.metaGrid}>
+          <span style={styles.metaItem}><span style={styles.metaLabel}>FACILITY:</span> {device.facility}</span>
+          <span style={styles.metaItem}><span style={styles.metaLabel}>BUILDING:</span> {device.building}</span>
+          <span style={styles.metaItem}><span style={styles.metaLabel}>UNIT:</span> {device.unit}</span>
+          <span style={styles.metaItem}><span style={styles.metaLabel}>TYPE:</span> {device.device_type}</span>
         </div>
-      </div>
+      </Card>
 
-      {/* Live telemetry panel */}
-      <div className="panel">
-        <h2>Live Telemetry</h2>
+      {/* Live telemetry */}
+      <Card title="LIVE TELEMETRY" style={{ marginBottom: 'var(--space-4)' }}>
         {latestTelemetry && latestTelemetry.payload ? (
-          <div className="telemetry-live">
-            {Object.entries(latestTelemetry.payload).map(([key, value]) => (
-              <div key={key} className="telemetry-item">
-                <div className="key">{key}</div>
-                <div className="value">
-                  {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+          <>
+            <div style={styles.telemetryGrid}>
+              {Object.entries(latestTelemetry.payload).map(([key, value]) => (
+                <div key={key} style={styles.telemetryItem}>
+                  <div style={styles.telemetryKey}>{key.toUpperCase()}</div>
+                  <div style={styles.telemetryValue}>
+                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+            {latestTelemetry.received_at && (
+              <p style={styles.timestamp}>
+                LAST UPDATED: {new Date(latestTelemetry.received_at).toLocaleString()}
+              </p>
+            )}
+          </>
         ) : (
-          <div className="empty-state">No telemetry data available.</div>
+          <div style={styles.emptyState}>[ NO TELEMETRY DATA AVAILABLE ]</div>
         )}
-        {latestTelemetry?.received_at && (
-          <p className="card-meta" style={{ marginTop: 12 }}>
-            Last updated: {new Date(latestTelemetry.received_at).toLocaleString()}
-          </p>
-        )}
-      </div>
+      </Card>
 
       {/* Telemetry chart */}
-      <div className="panel">
-        <h2>Telemetry Chart</h2>
+      <Card title="TELEMETRY CHART" style={{ marginBottom: 'var(--space-4)' }}>
         {payloadKeys.length > 0 ? (
           <>
-            {/* Dropdown to select which payload key to chart */}
-            <div className="form-group" style={{ maxWidth: 300, marginBottom: 12 }}>
-              <label>Select metric to chart</label>
-              <select value={selectedKey} onChange={(e) => setSelectedKey(e.target.value)}>
-                {payloadKeys.map((key) => (
-                  <option key={key} value={key}>
-                    {key}
-                  </option>
-                ))}
-              </select>
+            <div style={{ maxWidth: 300, marginBottom: 'var(--space-3)' }}>
+              <Select
+                label="SELECT METRIC"
+                value={selectedKey}
+                onChange={(e) => setSelectedKey(e.target.value)}
+                options={payloadKeys.map((k) => ({ value: k, label: k.toUpperCase() }))}
+              />
             </div>
-            <div className="chart-container">
+            <div style={{ position: 'relative', height: '300px' }}>
               <Line data={chartData} options={chartOptions} />
             </div>
           </>
         ) : (
-          <div className="empty-state">No numeric telemetry data available for charting.</div>
+          <div style={styles.emptyState}>[ NO NUMERIC TELEMETRY DATA AVAILABLE FOR CHARTING ]</div>
         )}
-      </div>
+      </Card>
 
       {/* Command panel */}
-      <div className="panel">
-        <h2>Send Commands</h2>
-
-        {/* Command status message */}
+      <Card title="SEND COMMANDS" style={{ marginBottom: 'var(--space-4)' }}>
         {commandMsg && (
-          <div className={`message message-${commandMsg.type}`}>{commandMsg.text}</div>
+          <AlertBanner variant={commandMsg.type} dismissible>
+            {commandMsg.text}
+          </AlertBanner>
         )}
 
         {/* Toggle Relay */}
-        <div className="command-section">
-          <h3>Toggle Relay</h3>
-          <div className="form-inline">
-            <div className="form-group">
-              <label>Relay Number</label>
-              <input
-                type="number"
-                min="1"
-                value={relayNumber}
-                onChange={(e) => setRelayNumber(Number(e.target.value))}
-                style={{ width: 80 }}
-              />
+        <div style={styles.cmdSection}>
+          <h3 style={styles.cmdTitle}>TOGGLE RELAY</h3>
+          <div style={styles.cmdRow}>
+            <Input
+              label="RELAY #"
+              type="number"
+              min="1"
+              value={relayNumber}
+              onChange={(e) => setRelayNumber(Number(e.target.value))}
+              style={{ width: 80 }}
+            />
+            <Select
+              label="STATE"
+              value={relayState}
+              onChange={(e) => setRelayState(e.target.value)}
+              options={[{ value: 'on', label: 'ON' }, { value: 'off', label: 'OFF' }]}
+              style={{ width: 100 }}
+            />
+            <div style={{ alignSelf: 'flex-end', marginBottom: 'var(--space-4)' }}>
+              <Button size="sm" onClick={() => sendCommand('toggle_relay', { relay: relayNumber, state: relayState })}>
+                SEND
+              </Button>
             </div>
-            <div className="form-group">
-              <label>State</label>
-              <select value={relayState} onChange={(e) => setRelayState(e.target.value)} style={{ width: 100 }}>
-                <option value="on">On</option>
-                <option value="off">Off</option>
-              </select>
-            </div>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => sendCommand('toggle_relay', { relay: relayNumber, state: relayState })}
-            >
-              Send
-            </button>
           </div>
         </div>
 
         {/* Set Polling Interval */}
-        <div className="command-section">
-          <h3>Set Polling Interval</h3>
-          <div className="form-inline">
-            <div className="form-group">
-              <label>Seconds</label>
-              <input
-                type="number"
-                min="1"
-                value={pollingInterval}
-                onChange={(e) => setPollingInterval(Number(e.target.value))}
-                style={{ width: 100 }}
-              />
+        <div style={styles.cmdSection}>
+          <h3 style={styles.cmdTitle}>SET POLLING INTERVAL</h3>
+          <div style={styles.cmdRow}>
+            <Input
+              label="SECONDS"
+              type="number"
+              min="1"
+              value={pollingInterval}
+              onChange={(e) => setPollingInterval(Number(e.target.value))}
+              style={{ width: 100 }}
+            />
+            <div style={{ alignSelf: 'flex-end', marginBottom: 'var(--space-4)' }}>
+              <Button size="sm" onClick={() => sendCommand('set_interval', { interval_seconds: pollingInterval })}>
+                SET INTERVAL
+              </Button>
             </div>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => sendCommand('set_interval', { interval_seconds: pollingInterval })}
-            >
-              Set Interval
-            </button>
           </div>
         </div>
 
-        {/* Request Immediate Reading */}
-        <div className="command-section">
-          <h3>Request Immediate Reading</h3>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => sendCommand('read_now', {})}
-          >
-            Request Reading
-          </button>
+        {/* Immediate Reading */}
+        <div style={styles.cmdSection}>
+          <h3 style={styles.cmdTitle}>REQUEST IMMEDIATE READING</h3>
+          <Button size="sm" onClick={() => sendCommand('read_now', {})}>
+            REQUEST READING
+          </Button>
         </div>
 
         {/* Motor Move */}
-        <div className="command-section">
-          <h3>Motor Move</h3>
-          <div className="form-inline">
-            <div className="form-group">
-              <label>Direction</label>
-              <select value={motorDirection} onChange={(e) => setMotorDirection(e.target.value)} style={{ width: 130 }}>
-                <option value="forward">Forward</option>
-                <option value="backward">Backward</option>
-                <option value="left">Left</option>
-                <option value="right">Right</option>
-              </select>
+        <div style={styles.cmdSection}>
+          <h3 style={styles.cmdTitle}>MOTOR MOVE</h3>
+          <div style={styles.cmdRow}>
+            <Select
+              label="DIRECTION"
+              value={motorDirection}
+              onChange={(e) => setMotorDirection(e.target.value)}
+              options={[
+                { value: 'forward', label: 'FORWARD' },
+                { value: 'backward', label: 'BACKWARD' },
+                { value: 'left', label: 'LEFT' },
+                { value: 'right', label: 'RIGHT' },
+              ]}
+              style={{ width: 140 }}
+            />
+            <Input
+              label="STEPS"
+              type="number"
+              min="1"
+              value={motorSteps}
+              onChange={(e) => setMotorSteps(Number(e.target.value))}
+              style={{ width: 100 }}
+            />
+            <div style={{ alignSelf: 'flex-end', marginBottom: 'var(--space-4)' }}>
+              <Button size="sm" onClick={() => sendCommand('motor_move', { direction: motorDirection, steps: motorSteps })}>
+                MOVE
+              </Button>
             </div>
-            <div className="form-group">
-              <label>Steps</label>
-              <input
-                type="number"
-                min="1"
-                value={motorSteps}
-                onChange={(e) => setMotorSteps(Number(e.target.value))}
-                style={{ width: 100 }}
-              />
-            </div>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => sendCommand('motor_move', { direction: motorDirection, steps: motorSteps })}
-            >
-              Move
-            </button>
           </div>
         </div>
 
-        {/* Gripper controls */}
-        <div className="command-section">
-          <h3>Gripper</h3>
-          <div className="btn-group">
-            <button
-              className="btn btn-success btn-sm"
-              onClick={() => sendCommand('gripper_open', {})}
-            >
-              Gripper Open
-            </button>
-            <button
-              className="btn btn-danger btn-sm"
-              onClick={() => sendCommand('gripper_close', {})}
-            >
-              Gripper Close
-            </button>
+        {/* Gripper */}
+        <div style={styles.cmdSection}>
+          <h3 style={styles.cmdTitle}>GRIPPER</h3>
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <Button size="sm" onClick={() => sendCommand('gripper_open', {})}>GRIPPER OPEN</Button>
+            <Button size="sm" variant="danger" onClick={() => sendCommand('gripper_close', {})}>GRIPPER CLOSE</Button>
           </div>
         </div>
 
         {/* Custom Command */}
-        <div className="command-section">
-          <h3>Custom Command</h3>
-          <div className="form-group">
-            <label>Raw JSON payload</label>
-            <textarea
-              value={customCommand}
-              onChange={(e) => setCustomCommand(e.target.value)}
-              placeholder='{"command_type": "custom", "payload": {}}'
-            />
-          </div>
-          <button
-            className="btn btn-secondary btn-sm"
+        <div style={{ ...styles.cmdSection, borderBottom: 'none' }}>
+          <h3 style={styles.cmdTitle}>CUSTOM COMMAND</h3>
+          <Textarea
+            label="RAW JSON PAYLOAD"
+            value={customCommand}
+            onChange={(e) => setCustomCommand(e.target.value)}
+            placeholder='{"command_type": "custom", "payload": {}}'
+          />
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={() => {
               try {
                 const parsed = JSON.parse(customCommand);
                 sendCommand(parsed.command_type || 'custom', parsed.payload || parsed);
               } catch {
-                setCommandMsg({ type: 'error', text: 'Invalid JSON. Please check your input.' });
+                setCommandMsg({ type: 'error', text: 'INVALID JSON. CHECK YOUR INPUT.' });
                 setTimeout(() => setCommandMsg(null), 5000);
               }
             }}
           >
-            Send Custom Command
-          </button>
+            SEND CUSTOM COMMAND
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Command history */}
-      <div className="panel">
-        <h2>Command History</h2>
-        {commands.length === 0 ? (
-          <div className="empty-state">No commands have been sent to this device.</div>
-        ) : (
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Issued At</th>
-                  <th>Command Type</th>
-                  <th>Payload</th>
-                  <th>Acknowledged</th>
-                </tr>
-              </thead>
-              <tbody>
-                {commands.map((cmd, idx) => (
-                  <tr key={cmd.command_id || idx}>
-                    <td>{new Date(cmd.issued_at).toLocaleString()}</td>
-                    <td>{cmd.command_type}</td>
-                    <td>
-                      <code>{JSON.stringify(cmd.payload)}</code>
-                    </td>
-                    <td>
-                      <span className={`status-badge ${cmd.acknowledged ? 'online' : 'offline'}`}>
-                        {cmd.acknowledged ? 'Yes' : 'No'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <Card title="COMMAND HISTORY">
+        <Table
+          columns={cmdColumns}
+          data={cmdData}
+          emptyMessage="[ NO COMMANDS HAVE BEEN SENT TO THIS DEVICE ]"
+        />
+      </Card>
     </div>
   );
 }
+
+const styles = {
+  deviceName: {
+    fontFamily: 'var(--font-display)',
+    fontSize: 'var(--text-xl)',
+    color: 'var(--color-phosphor-primary)',
+    textShadow: 'var(--glow-text)',
+    margin: 0,
+    fontWeight: 'normal',
+  },
+  metaGrid: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 'var(--space-4)',
+  },
+  metaItem: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--color-phosphor-primary)',
+  },
+  metaLabel: {
+    color: 'var(--color-phosphor-ghost)',
+  },
+  telemetryGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    gap: 'var(--space-3)',
+  },
+  telemetryItem: {
+    background: 'var(--color-bg-base)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-sm)',
+    padding: 'var(--space-3) var(--space-4)',
+  },
+  telemetryKey: {
+    fontSize: 'var(--text-xs)',
+    color: 'var(--color-phosphor-ghost)',
+    textTransform: 'uppercase',
+    letterSpacing: 'var(--letter-spacing-wide)',
+    fontFamily: 'var(--font-mono)',
+  },
+  telemetryValue: {
+    fontSize: 'var(--text-lg)',
+    color: 'var(--color-phosphor-primary)',
+    textShadow: 'var(--glow-text)',
+    fontFamily: 'var(--font-display)',
+    marginTop: 'var(--space-1)',
+  },
+  timestamp: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-xs)',
+    color: 'var(--color-phosphor-ghost)',
+    marginTop: 'var(--space-3)',
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: 'var(--space-6)',
+    color: 'var(--color-text-muted)',
+    fontFamily: 'var(--font-mono)',
+  },
+  cmdSection: {
+    marginBottom: 'var(--space-4)',
+    paddingBottom: 'var(--space-4)',
+    borderBottom: '1px solid var(--color-border)',
+  },
+  cmdTitle: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--color-phosphor-dim)',
+    letterSpacing: 'var(--letter-spacing-wide)',
+    marginBottom: 'var(--space-3)',
+    fontWeight: 'normal',
+  },
+  cmdRow: {
+    display: 'flex',
+    gap: 'var(--space-3)',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+  },
+};
 
 export default DeviceDetail;
