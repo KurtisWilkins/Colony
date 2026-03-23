@@ -266,7 +266,9 @@ echo ""
 info "Step 5/9: Building React frontend..."
 
 cd "$PROJECT_DIR/frontend"
-npm install
+# Use --include=dev to ensure vite and build tools are installed even when
+# running as root/sudo (which can default to NODE_ENV=production)
+npm install --include=dev
 if [ $? -ne 0 ]; then
     err "npm install failed."
     cd "$PROJECT_DIR"
