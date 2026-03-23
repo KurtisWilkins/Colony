@@ -13,6 +13,7 @@ import DeviceList from './pages/DeviceList';
 import DeviceDetail from './pages/DeviceDetail';
 import RegisterDevice from './pages/RegisterDevice';
 import UserManagement from './pages/UserManagement';
+import ControlDashboard from './pages/ControlDashboard';
 
 function Clock() {
   const [time, setTime] = useState(new Date());
@@ -146,6 +147,7 @@ function App() {
             <Route path="/devices/:facility/:building" element={<UnitList />} />
             <Route path="/devices/:facility/:building/:unit" element={<DeviceList />} />
             <Route path="/device/:deviceId" element={<DeviceDetail />} />
+            <Route path="/devices/:deviceId/control" element={<ControlDashboard />} />
             <Route path="/register" element={<RegisterDevice />} />
             {isAdmin && <Route path="/users" element={<UserManagement />} />}
           </Routes>
