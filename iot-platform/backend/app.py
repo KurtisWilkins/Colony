@@ -8,6 +8,7 @@ Flask application entry point for the IoT Platform backend.
 import os
 import time
 import logging
+from logging.handlers import RotatingFileHandler
 from datetime import datetime, timezone
 
 from flask import Flask, jsonify, send_from_directory
@@ -142,6 +143,25 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
+
+# ---------------------------------------------------------------------------
+# File-based logging for management API requests
+# ---------------------------------------------------------------------------
+_log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(_log_dir, exist_ok=True)
+
+_mgmt_file_handler = RotatingFileHandler(
+    os.path.join(_log_dir, "management_api.log"),
+    maxBytes=5 * 1024 * 1024,  # 5 MB per file
+    backupCount=3,
+)
+_mgmt_file_handler.setLevel(logging.DEBUG)
+_mgmt_file_handler.setFormatter(
+    logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+)
+
+# Attach the file handler to the hierarchy_mgmt logger
+logging.getLogger("routes.hierarchy_mgmt").addHandler(_mgmt_file_handler)
 
 # Create the application instance (used by mqtt_service and gunicorn)
 app = create_app()
