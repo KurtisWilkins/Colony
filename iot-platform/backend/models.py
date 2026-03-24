@@ -1,6 +1,6 @@
 """
 SQLAlchemy models for the IoT Platform.
-Defines Device, Telemetry, Command, and Alert tables.
+Defines Device, Telemetry, Command, Alert, and Hierarchy tables.
 """
 
 import uuid
@@ -20,6 +20,108 @@ def _utcnow():
 
 
 # ---------------------------------------------------------------------------
+# Facility model
+# ---------------------------------------------------------------------------
+class Facility(db.Model):
+    """Top-level site / campus in the location hierarchy."""
+
+    __tablename__ = "facilities"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    description = db.Column(db.Text, nullable=True)
+    location = db.Column(db.String(200), nullable=True)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    buildings = db.relationship("Building", backref="facility", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "name": self.name,
+            "description": self.description,
+            "location": self.location,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Building model
+# ---------------------------------------------------------------------------
+class Building(db.Model):
+    """A building within a facility."""
+
+    __tablename__ = "buildings"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    facility_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("facilities.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    floor_count = db.Column(db.Integer, default=1)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("facility_id", "name", name="uq_building_in_facility"),
+    )
+
+    units = db.relationship("Unit", backref="building", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "facility_id": str(self.facility_id),
+            "name": self.name,
+            "description": self.description,
+            "floor_count": self.floor_count,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Unit model
+# ---------------------------------------------------------------------------
+class Unit(db.Model):
+    """A room, zone, or logical unit within a building."""
+
+    __tablename__ = "units"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    building_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("buildings.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    unit_type = db.Column(db.String(50), default="grow_tent")
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("building_id", "name", name="uq_unit_in_building"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "building_id": str(self.building_id),
+            "name": self.name,
+            "description": self.description,
+            "unit_type": self.unit_type,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+# ---------------------------------------------------------------------------
 # Device model
 # ---------------------------------------------------------------------------
 class Device(db.Model):
@@ -30,11 +132,16 @@ class Device(db.Model):
     # Primary key: UUID generated automatically
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    # Hierarchical location fields
+    # Hierarchical location fields (string-based, for MQTT topic compatibility)
     facility = db.Column(db.String(128), nullable=False)
     building = db.Column(db.String(128), nullable=False)
     unit = db.Column(db.String(128), nullable=False)
     device_name = db.Column(db.String(128), nullable=False)
+
+    # Foreign key references to hierarchy tables (nullable for backward compat)
+    facility_id = db.Column(UUID(as_uuid=True), db.ForeignKey("facilities.id"), nullable=True)
+    building_id = db.Column(UUID(as_uuid=True), db.ForeignKey("buildings.id"), nullable=True)
+    unit_id = db.Column(UUID(as_uuid=True), db.ForeignKey("units.id"), nullable=True)
 
     # Device metadata
     device_type = db.Column(db.String(64), nullable=False)
@@ -66,6 +173,9 @@ class Device(db.Model):
             "unit": self.unit,
             "device_name": self.device_name,
             "device_type": self.device_type,
+            "facility_id": str(self.facility_id) if self.facility_id else None,
+            "building_id": str(self.building_id) if self.building_id else None,
+            "unit_id": str(self.unit_id) if self.unit_id else None,
             "registered_at": self.registered_at.isoformat() if self.registered_at else None,
             "last_seen": self.last_seen.isoformat() if self.last_seen else None,
             "is_online": self.is_online,

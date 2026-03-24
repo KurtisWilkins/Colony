@@ -63,12 +63,14 @@ def create_app():
     from routes.telemetry import telemetry_bp
     from routes.commands import commands_bp
     from routes.hierarchy import hierarchy_bp
+    from routes.hierarchy_mgmt import hierarchy_mgmt_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(devices_bp)
     app.register_blueprint(telemetry_bp)
     app.register_blueprint(commands_bp)
     app.register_blueprint(hierarchy_bp)
+    app.register_blueprint(hierarchy_mgmt_bp)
 
     from routes.automation_api import automation_api_bp
     app.register_blueprint(automation_api_bp)
