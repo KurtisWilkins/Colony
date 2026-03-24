@@ -40,15 +40,20 @@ def list_facilities():
 @login_required
 def create_facility():
     """Create a new facility."""
+    logger.info("POST /api/manage/facilities — raw body: %s", request.get_data(as_text=True))
     data = request.get_json(silent=True)
+    logger.info("POST /api/manage/facilities — parsed JSON: %s", data)
     if not data:
+        logger.warning("POST /api/manage/facilities — invalid JSON, returning 400")
         return jsonify({"error": "Request body must be valid JSON"}), 400
 
     name = (data.get("name") or "").strip()
     if not name:
+        logger.warning("POST /api/manage/facilities — empty name, returning 400")
         return jsonify({"error": "Facility name is required"}), 400
 
     if Facility.query.filter(func.lower(Facility.name) == name.lower()).first():
+        logger.warning("POST /api/manage/facilities — duplicate name '%s', returning 409", name)
         return jsonify({"error": f"Facility '{name}' already exists"}), 409
 
     facility = Facility(
@@ -58,6 +63,7 @@ def create_facility():
     )
     db.session.add(facility)
     db.session.commit()
+    logger.info("POST /api/manage/facilities — created id=%s name='%s'", facility.id, facility.name)
     return jsonify(facility.to_dict()), 201
 
 
@@ -91,12 +97,16 @@ def get_facility(facility_id):
 @login_required
 def update_facility(facility_id):
     """Update facility fields."""
+    logger.info("PUT /api/manage/facilities/%s — raw body: %s", facility_id, request.get_data(as_text=True))
     facility = Facility.query.get(facility_id)
     if not facility:
+        logger.warning("PUT /api/manage/facilities/%s — not found, returning 404", facility_id)
         return jsonify({"error": "Facility not found"}), 404
 
     data = request.get_json(silent=True)
+    logger.info("PUT /api/manage/facilities/%s — parsed JSON: %s", facility_id, data)
     if not data:
+        logger.warning("PUT /api/manage/facilities/%s — invalid JSON, returning 400", facility_id)
         return jsonify({"error": "Request body must be valid JSON"}), 400
 
     if "name" in data:
@@ -167,8 +177,11 @@ def list_buildings():
 @login_required
 def create_building():
     """Create a new building within a facility."""
+    logger.info("POST /api/manage/buildings — raw body: %s", request.get_data(as_text=True))
     data = request.get_json(silent=True)
+    logger.info("POST /api/manage/buildings — parsed JSON: %s", data)
     if not data:
+        logger.warning("POST /api/manage/buildings — invalid JSON, returning 400")
         return jsonify({"error": "Request body must be valid JSON"}), 400
 
     facility_id = data.get("facility_id")
@@ -294,8 +307,11 @@ def list_units():
 @login_required
 def create_unit():
     """Create a new unit within a building."""
+    logger.info("POST /api/manage/units — raw body: %s", request.get_data(as_text=True))
     data = request.get_json(silent=True)
+    logger.info("POST /api/manage/units — parsed JSON: %s", data)
     if not data:
+        logger.warning("POST /api/manage/units — invalid JSON, returning 400")
         return jsonify({"error": "Request body must be valid JSON"}), 400
 
     building_id = data.get("building_id")
@@ -414,12 +430,16 @@ def get_unassigned_devices():
 @login_required
 def assign_device(device_id):
     """Assign a device to a facility/building/unit."""
+    logger.info("PUT /api/manage/devices/%s/assign — raw body: %s", device_id, request.get_data(as_text=True))
     device = Device.query.get(device_id)
     if not device:
+        logger.warning("PUT /api/manage/devices/%s/assign — device not found", device_id)
         return jsonify({"error": "Device not found"}), 404
 
     data = request.get_json(silent=True)
+    logger.info("PUT /api/manage/devices/%s/assign — parsed JSON: %s", device_id, data)
     if not data:
+        logger.warning("PUT /api/manage/devices/%s/assign — invalid JSON, returning 400", device_id)
         return jsonify({"error": "Request body must be valid JSON"}), 400
 
     unit_id = data.get("unit_id")
