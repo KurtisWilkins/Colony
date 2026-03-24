@@ -16,6 +16,10 @@ import ControlDashboard from './pages/ControlDashboard';
 import ThresholdConfig from './pages/ThresholdConfig';
 import WaterUsage from './pages/WaterUsage';
 import WiringGuide from './pages/WiringGuide';
+import HierarchyOverview from './pages/management/HierarchyOverview';
+import FacilityManager from './pages/management/FacilityManager';
+import BuildingManager from './pages/management/BuildingManager';
+import UnitManager from './pages/management/UnitManager';
 
 function Clock() {
   const [time, setTime] = useState(new Date());
@@ -62,6 +66,13 @@ function App() {
     { to: '/wiring', label: '\u26A1 WIRING GUIDE' },
   ];
 
+  const managementItems = [
+    { to: '/manage', label: '\u25C8 OVERVIEW', end: true },
+    { to: '/manage/facilities', label: '\u229E FACILITIES' },
+    { to: '/manage/buildings', label: '\u229F BUILDINGS' },
+    { to: '/manage/units', label: '\u22A1 UNITS' },
+  ];
+
   return (
     <div style={styles.layout}>
       {/* Desktop Sidebar */}
@@ -89,6 +100,20 @@ function App() {
             <NavLink
               key={item.to}
               to={item.to}
+              style={({ isActive }) => ({
+                ...styles.navLink,
+                ...(isActive ? styles.navLinkActive : {}),
+              })}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+          <div style={styles.navSectionHeader}>[ SYSTEM MANAGEMENT ]</div>
+          {managementItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
               style={({ isActive }) => ({
                 ...styles.navLink,
                 ...(isActive ? styles.navLinkActive : {}),
@@ -160,6 +185,20 @@ function App() {
                 {item.label}
               </NavLink>
             ))}
+            <div style={styles.navSectionHeader}>[ SYSTEM MANAGEMENT ]</div>
+            {managementItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                style={({ isActive }) => ({
+                  ...styles.mobileNavLink,
+                  ...(isActive ? styles.navLinkActive : {}),
+                })}
+              >
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
         </div>
       )}
@@ -190,7 +229,10 @@ function App() {
             <Route path="/water" element={<WaterUsage />} />
             <Route path="/wiring" element={<WiringGuide />} />
             <Route path="/register" element={<RegisterDevice />} />
-            {/* User management removed — single-user system */}
+            <Route path="/manage" element={<HierarchyOverview />} />
+            <Route path="/manage/facilities" element={<FacilityManager />} />
+            <Route path="/manage/buildings" element={<BuildingManager />} />
+            <Route path="/manage/units" element={<UnitManager />} />
           </Routes>
         </main>
       </div>

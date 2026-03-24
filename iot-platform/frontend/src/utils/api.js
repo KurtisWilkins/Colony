@@ -132,3 +132,102 @@ export function getActiveAlerts(deviceId) {
 export function getDevices() {
   return request('/api/devices');
 }
+
+// ── Hierarchy management ────────────────────────────────────────────────
+
+export function getTree() {
+  return request('/api/manage/tree');
+}
+
+export function getFacilities() {
+  return request('/api/manage/facilities');
+}
+
+export function createFacility(data) {
+  return request('/api/manage/facilities', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function getFacility(id) {
+  return request(`/api/manage/facilities/${id}`);
+}
+
+export function updateFacility(id, data) {
+  return request(`/api/manage/facilities/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteFacility(id) {
+  return request(`/api/manage/facilities/${id}`, { method: 'DELETE' });
+}
+
+export function getBuildings(facilityId) {
+  return request(`/api/manage/buildings?facility_id=${facilityId}`);
+}
+
+export function createBuilding(data) {
+  return request('/api/manage/buildings', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function getBuilding(id) {
+  return request(`/api/manage/buildings/${id}`);
+}
+
+export function updateBuilding(id, data) {
+  return request(`/api/manage/buildings/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteBuilding(id) {
+  return request(`/api/manage/buildings/${id}`, { method: 'DELETE' });
+}
+
+export function getUnits(buildingId) {
+  return request(`/api/manage/units?building_id=${buildingId}`);
+}
+
+export function createUnit(data) {
+  return request('/api/manage/units', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function getUnit(id) {
+  return request(`/api/manage/units/${id}`);
+}
+
+export function updateUnit(id, data) {
+  return request(`/api/manage/units/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteUnit(id) {
+  return request(`/api/manage/units/${id}`, { method: 'DELETE' });
+}
+
+export function getUnassignedDevices() {
+  return request('/api/manage/devices/unassigned');
+}
+
+export function assignDevice(deviceId, data) {
+  return request(`/api/manage/devices/${deviceId}/assign`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function unassignDevice(deviceId) {
+  return request(`/api/manage/devices/${deviceId}/assign`, { method: 'DELETE' });
+}
