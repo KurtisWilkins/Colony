@@ -9,6 +9,7 @@ function request(path, options = {}) {
   const url = `${BASE}${path}`;
   const config = {
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     ...options,
   };
   return fetch(url, config).then((r) => {

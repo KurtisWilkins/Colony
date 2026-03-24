@@ -1,84 +1,61 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('iot_token'));
   const [loading, setLoading] = useState(true);
-  const [needsSetup, setNeedsSetup] = useState(false);
 
-  // Set axios default auth header whenever token changes
+  // Check session on mount
   useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      localStorage.setItem('iot_token', token);
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-      localStorage.removeItem('iot_token');
-    }
-  }, [token]);
-
-  // Validate token on mount
-  useEffect(() => {
-    const validateToken = async () => {
-      if (!token) {
-        // Check if setup is needed (no users exist)
-        try {
-          const res = await axios.get('/api/auth/me');
-          // This shouldn't succeed without a token, but just in case
-          setUser(res.data);
-        } catch {
-          // Check if setup is needed by trying /api/auth/setup with GET-like behavior
-          // We'll handle this in the login page
-        }
-        setLoading(false);
-        return;
-      }
-
+    const checkSession = async () => {
       try {
-        const res = await axios.get('/api/auth/me');
-        setUser(res.data);
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        }
       } catch {
-        // Token invalid/expired
-        setToken(null);
-        setUser(null);
+        // Server unreachable — stay logged out
       }
       setLoading(false);
     };
-
-    validateToken();
-  }, [token]);
+    checkSession();
+  }, []);
 
   const login = useCallback(async (username, password) => {
-    const res = await axios.post('/api/auth/login', { username, password });
-    setToken(res.data.token);
-    setUser(res.data.user);
-    return res.data;
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const err = new Error(data.error || 'Login failed');
+      err.status = res.status;
+      throw err;
+    }
+    setUser(data.user);
+    return data;
   }, []);
 
-  const setup = useCallback(async (username, password) => {
-    const res = await axios.post('/api/auth/setup', { username, password });
-    setToken(res.data.token);
-    setUser(res.data.user);
-    setNeedsSetup(false);
-    return res.data;
-  }, []);
-
-  const logout = useCallback(() => {
-    setToken(null);
+  const logout = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // Logout even if server unreachable
+    }
     setUser(null);
   }, []);
 
   const value = {
     user,
-    token,
     loading,
-    needsSetup,
-    setNeedsSetup,
     login,
-    setup,
     logout,
     isAdmin: user?.role === 'admin',
   };

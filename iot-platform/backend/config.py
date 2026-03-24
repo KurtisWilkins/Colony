@@ -29,9 +29,15 @@ SQLALCHEMY_DATABASE_URI = (
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # ---------------------------------------------------------------------------
-# Application secret key (used for JWT signing)
+# Application secret key (used for session signing)
 # ---------------------------------------------------------------------------
 SECRET_KEY = os.getenv("SECRET_KEY", "change-me-to-a-random-secret-in-production")
+
+# ---------------------------------------------------------------------------
+# Login credentials (single-user session auth)
+# ---------------------------------------------------------------------------
+LOGIN_USERNAME = os.getenv("LOGIN_USERNAME", "KurtisWilkins")
+LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD", "")
 
 # ---------------------------------------------------------------------------
 # MQTT broker configuration
