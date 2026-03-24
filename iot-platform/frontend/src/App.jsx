@@ -12,7 +12,6 @@ import UnitList from './pages/UnitList';
 import DeviceList from './pages/DeviceList';
 import DeviceDetail from './pages/DeviceDetail';
 import RegisterDevice from './pages/RegisterDevice';
-import UserManagement from './pages/UserManagement';
 import ControlDashboard from './pages/ControlDashboard';
 import ThresholdConfig from './pages/ThresholdConfig';
 import WaterUsage from './pages/WaterUsage';
@@ -53,7 +52,7 @@ function App() {
     { to: '/', label: 'DASHBOARD', end: true },
     { to: '/devices', label: 'DEVICES' },
     { to: '/register', label: 'REGISTER' },
-    ...(isAdmin ? [{ to: '/users', label: 'USERS' }] : []),
+    // User management removed — single-user system
   ];
 
   const growTentItems = [
@@ -191,7 +190,7 @@ function App() {
             <Route path="/water" element={<WaterUsage />} />
             <Route path="/wiring" element={<WiringGuide />} />
             <Route path="/register" element={<RegisterDevice />} />
-            {isAdmin && <Route path="/users" element={<UserManagement />} />}
+            {/* User management removed — single-user system */}
           </Routes>
         </main>
       </div>

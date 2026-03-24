@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button, Input, AlertBanner, Loader } from '../components/ui';
 
@@ -13,32 +12,12 @@ const ASCII_HEADER = `
 `.trim();
 
 function Login() {
-  const { login, setup } = useAuth();
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [isSetupMode, setIsSetupMode] = useState(false);
-  const [checkingSetup, setCheckingSetup] = useState(true);
-
-  useEffect(() => {
-    const checkSetup = async () => {
-      try {
-        await axios.post('/api/auth/setup', {});
-        setIsSetupMode(false);
-      } catch (err) {
-        if (err.response?.status === 400) {
-          setIsSetupMode(true);
-        } else if (err.response?.status === 403) {
-          setIsSetupMode(false);
-        }
-      }
-      setCheckingSetup(false);
-    };
-    checkSetup();
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,42 +28,18 @@ function Login() {
       return;
     }
 
-    if (isSetupMode) {
-      if (password !== confirmPassword) {
-        setError('PASSWORDS DO NOT MATCH.');
-        return;
-      }
-      if (password.length < 6) {
-        setError('PASSWORD MUST BE AT LEAST 6 CHARACTERS.');
-        return;
-      }
-    }
-
     setConnecting(true);
-    // Brief connecting animation
     await new Promise((r) => setTimeout(r, 800));
     setLoading(true);
 
     try {
-      if (isSetupMode) {
-        await setup(username, password);
-      } else {
-        await login(username, password);
-      }
+      await login(username, password);
     } catch (err) {
-      setError(err.response?.data?.error || 'ACCESS DENIED. AUTHENTICATION FAILED.');
+      setError(err.message || 'ACCESS DENIED. AUTHENTICATION FAILED.');
       setConnecting(false);
     }
     setLoading(false);
   };
-
-  if (checkingSetup) {
-    return (
-      <div style={styles.container}>
-        <Loader type="spin" text="INITIALIZING" fullscreen />
-      </div>
-    );
-  }
 
   return (
     <div style={styles.container}>
@@ -118,12 +73,9 @@ function Login() {
 
       {/* Login panel */}
       <div style={styles.panel}>
-        {/* ASCII art header */}
         <pre style={styles.ascii}>{ASCII_HEADER}</pre>
 
-        <div style={styles.subtitle}>
-          {isSetupMode ? 'INITIAL SETUP REQUIRED' : 'AUTHENTICATION REQUIRED'}
-        </div>
+        <div style={styles.subtitle}>AUTHENTICATION REQUIRED</div>
 
         {error && <AlertBanner variant="error">{error}</AlertBanner>}
 
@@ -153,21 +105,8 @@ function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="ENTER PASSWORD"
-              autoComplete={isSetupMode ? 'new-password' : 'current-password'}
+              autoComplete="current-password"
             />
-
-            {isSetupMode && (
-              <Input
-                id="confirmPassword"
-                label="Confirm Password"
-                prefix="> "
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="CONFIRM PASSWORD"
-                autoComplete="new-password"
-              />
-            )}
 
             <Button
               type="submit"
@@ -177,15 +116,9 @@ function Login() {
               disabled={loading}
               style={{ width: '100%', marginTop: 'var(--space-2)' }}
             >
-              {isSetupMode ? 'CREATE ADMIN ACCOUNT' : 'INITIALIZE SESSION'}
+              INITIALIZE SESSION
             </Button>
           </form>
-        )}
-
-        {isSetupMode && !connecting && (
-          <div style={styles.note}>
-            FIRST-TIME SETUP. THIS ACCOUNT WILL HAVE FULL ADMIN PRIVILEGES.
-          </div>
         )}
       </div>
     </div>
@@ -253,14 +186,6 @@ const styles = {
     fontSize: 'var(--text-sm)',
     letterSpacing: 'var(--letter-spacing-wider)',
     marginBottom: 'var(--space-6)',
-    fontFamily: 'var(--font-mono)',
-  },
-  note: {
-    marginTop: 'var(--space-4)',
-    fontSize: 'var(--text-xs)',
-    color: 'var(--color-phosphor-ghost)',
-    textAlign: 'center',
-    lineHeight: 'var(--leading-normal)',
     fontFamily: 'var(--font-mono)',
   },
 };

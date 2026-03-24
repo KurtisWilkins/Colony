@@ -14,7 +14,7 @@ from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 
 import config
-from models import db, Device, Telemetry, User
+from models import db, Device, Telemetry
 
 # Record server start time for uptime reporting
 _server_start_time = time.time()
@@ -41,7 +41,7 @@ def create_app():
     app.config["SECRET_KEY"] = config.SECRET_KEY
 
     # Enable CORS so the React dev server can talk to the API
-    CORS(app)
+    CORS(app, supports_credentials=True)
 
     # Initialise the shared SQLAlchemy instance with this app
     db.init_app(app)
@@ -51,9 +51,14 @@ def create_app():
         db.create_all()
 
     # ------------------------------------------------------------------
+    # Initialise Flask-Login for session-based auth
+    # ------------------------------------------------------------------
+    from routes.auth import auth_bp, login_required, init_login
+    init_login(app)
+
+    # ------------------------------------------------------------------
     # Register API blueprints
     # ------------------------------------------------------------------
-    from routes.auth import auth_bp, login_required
     from routes.devices import devices_bp
     from routes.telemetry import telemetry_bp
     from routes.commands import commands_bp
