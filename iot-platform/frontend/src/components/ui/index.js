@@ -14,3 +14,5 @@ export { default as Tooltip } from './Tooltip';
 export { default as Breadcrumb } from './Breadcrumb';
 export { default as Loader } from './Loader';
 export { default as AlertBanner } from './AlertBanner';
+export { default as GaugeBar } from '../GaugeBar';
+export { default as ActuatorIndicator } from '../ActuatorIndicator';

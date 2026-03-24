@@ -1,0 +1,28 @@
+[Unit]
+Description=IoT Automation Server
+After=network.target mosquitto.service postgresql.service
+Wants=mosquitto.service postgresql.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/Colony/iot-platform/server
+Environment=PATH=/home/pi/Colony/iot-platform/server/venv/bin:/usr/local/bin:/usr/bin
+EnvironmentFile=-/home/pi/Colony/iot-platform/server/.env
+ExecStart=/home/pi/Colony/iot-platform/server/venv/bin/python main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=iot-automation
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/pi/Colony/iot-platform/server
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

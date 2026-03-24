@@ -114,3 +114,30 @@ export const terminalBarDataset = {
   borderColor: '#00ff41',
   borderWidth: 1,
 };
+
+/**
+ * Amber dataset preset (warnings, secondary metrics).
+ */
+export const amberDataset = {
+  borderColor: '#ffb000',
+  backgroundColor: 'rgba(255,176,0,0.15)',
+  pointBackgroundColor: '#ffb000',
+};
+
+/**
+ * Cyan dataset preset (water, humidity overlays).
+ */
+export const cyanDataset = {
+  borderColor: '#00fff7',
+  backgroundColor: 'rgba(0,255,247,0.10)',
+  pointBackgroundColor: '#00fff7',
+};
+
+/**
+ * Dim green dataset preset (background/reference lines).
+ */
+export const dimGreenDataset = {
+  borderColor: '#00aa2a',
+  backgroundColor: 'rgba(0,170,42,0.10)',
+  pointBackgroundColor: '#00aa2a',
+};
