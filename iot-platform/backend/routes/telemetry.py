@@ -52,6 +52,16 @@ def get_telemetry(device_id):
         except ValueError:
             return jsonify({"error": "Invalid 'until' timestamp format. Use ISO 8601."}), 400
 
+    # Optional: exclude test mode data
+    exclude_test = request.args.get("exclude_test", "false").lower() in ("true", "1", "yes")
+    if exclude_test:
+        query = query.filter(
+            db.or_(
+                Telemetry.payload["test_mode"].astext != "true",
+                ~Telemetry.payload.has_key("test_mode"),  # noqa: W601
+            )
+        )
+
     # Limit the number of returned records (default 100, capped at 10000)
     try:
         limit = min(int(request.args.get("limit", 100)), 10000)

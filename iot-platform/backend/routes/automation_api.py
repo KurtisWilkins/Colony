@@ -338,6 +338,36 @@ def read_now(device_id):
 
 
 # ---------------------------------------------------------------------------
+# POST /api/control/<device_id>/test_mode/on
+# ---------------------------------------------------------------------------
+@automation_api_bp.route("/api/control/<device_id>/test_mode/on", methods=["POST"])
+@login_required
+def test_mode_on(device_id):
+    """Enable test mode on a device via MQTT command."""
+    device, err = _get_device_or_404(device_id)
+    if err:
+        return err
+
+    cmd = _publish_command(device, "set_test_mode", {"enabled": True})
+    return jsonify({"success": True, "message": "Test mode enabled", "command": cmd.to_dict()}), 201
+
+
+# ---------------------------------------------------------------------------
+# POST /api/control/<device_id>/test_mode/off
+# ---------------------------------------------------------------------------
+@automation_api_bp.route("/api/control/<device_id>/test_mode/off", methods=["POST"])
+@login_required
+def test_mode_off(device_id):
+    """Disable test mode on a device via MQTT command."""
+    device, err = _get_device_or_404(device_id)
+    if err:
+        return err
+
+    cmd = _publish_command(device, "set_test_mode", {"enabled": False})
+    return jsonify({"success": True, "message": "Test mode disabled", "command": cmd.to_dict()}), 201
+
+
+# ---------------------------------------------------------------------------
 # GET /api/control/<device_id>/state
 # ---------------------------------------------------------------------------
 @automation_api_bp.route("/api/control/<device_id>/state", methods=["GET"])

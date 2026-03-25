@@ -1,6 +1,7 @@
 #include "actuators.h"
 #include "config.h"
 #include "storage.h"
+#include "test_mode.h"
 
 Actuators actuators;
 
@@ -34,6 +35,13 @@ void Actuators::begin() {
 }
 
 void Actuators::valveOpen() {
+    if (testMode.isEnabled()) {
+        testMode.setValveOpen(true);
+        valve_open = true;
+        valve_open_start = millis();
+        logMsg("TEST", "Valve OPENED (virtual — no relay activated)");
+        return;
+    }
     if (!valve_open) {
         digitalWrite(RELAY_VALVE, LOW);  // LOW = energized = ON
         valve_open = true;
@@ -43,6 +51,13 @@ void Actuators::valveOpen() {
 }
 
 void Actuators::valveClose() {
+    if (testMode.isEnabled()) {
+        testMode.setValveOpen(false);
+        valve_open = false;
+        valve_open_start = 0;
+        logMsg("TEST", "Valve CLOSED (virtual — no relay activated)");
+        return;
+    }
     if (valve_open) {
         digitalWrite(RELAY_VALVE, HIGH); // HIGH = de-energized = OFF
         valve_open = false;
@@ -52,6 +67,12 @@ void Actuators::valveClose() {
 }
 
 void Actuators::misterOn() {
+    if (testMode.isEnabled()) {
+        testMode.setMisterOn(true);
+        mister_on = true;
+        logMsg("TEST", "Mister ON (virtual — no relay activated)");
+        return;
+    }
     if (!mister_on) {
         digitalWrite(RELAY_MISTER, LOW); // LOW = energized = ON
         mister_on = true;
@@ -60,6 +81,12 @@ void Actuators::misterOn() {
 }
 
 void Actuators::misterOff() {
+    if (testMode.isEnabled()) {
+        testMode.setMisterOn(false);
+        mister_on = false;
+        logMsg("TEST", "Mister OFF (virtual — no relay activated)");
+        return;
+    }
     if (mister_on) {
         digitalWrite(RELAY_MISTER, HIGH); // HIGH = de-energized = OFF
         mister_on = false;
@@ -82,6 +109,14 @@ void Actuators::fanSetSpeed(int percent) {
         percent = FAN_MIN_SPEED;
     }
 
+    if (testMode.isEnabled()) {
+        testMode.setFanSpeed(percent);
+        fan_speed_pct = percent;
+        fan_on = true;
+        logMsg("TEST", "Fan speed set to %d%% (virtual — no PWM output)", percent);
+        return;
+    }
+
     fan_speed_pct = percent;
     fan_on = true;
 
@@ -102,6 +137,13 @@ void Actuators::fanOn(int percent) {
 }
 
 void Actuators::fanOff() {
+    if (testMode.isEnabled()) {
+        testMode.setFanOn(false);
+        fan_on = false;
+        fan_speed_pct = 0;
+        logMsg("TEST", "Fan OFF (virtual — no PWM output)");
+        return;
+    }
     fan_on = false;
     fan_speed_pct = 0;
     ledcWrite(FAN_PWM_CHANNEL, 0);

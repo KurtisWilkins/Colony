@@ -1,6 +1,7 @@
 #include "sensors.h"
 #include "config.h"
 #include "storage.h"
+#include "test_mode.h"
 #include <Wire.h>
 
 Sensors sensors;
@@ -58,6 +59,22 @@ void Sensors::begin() {
 }
 
 void Sensors::update() {
+    if (testMode.isEnabled()) {
+        // Skip all hardware reads — use simulated data
+        SimulatedReadings sim = testMode.generateReadings();
+        readings.temperature  = sim.temperature_c;
+        readings.humidity     = sim.humidity_pct;
+        readings.pressure     = sim.pressure_hpa;
+        readings.co2_ppm      = sim.co2_ppm;
+        readings.distance_cm  = sim.tank_depth_cm;
+        readings.tank_pct     = (float)sim.tank_pct;
+        readings.bme280_ok    = true;
+        readings.mhz19_ok     = true;
+        readings.ultrasonic_ok = true;
+        testMode.printStatus(sim);
+        return;
+    }
+
     readBME280();
     readMHZ19();
     readUltrasonic();

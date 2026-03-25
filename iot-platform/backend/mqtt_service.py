@@ -137,6 +137,14 @@ def _handle_telemetry(db, Device, Telemetry, parsed, raw_payload):
         logger.warning("Non-JSON telemetry payload from %s, storing as raw string", parsed["device_name"])
         payload_data = {"raw": raw_payload.decode("utf-8", errors="replace") if isinstance(raw_payload, bytes) else str(raw_payload)}
 
+    # Ensure test_mode flag is preserved at top level of stored payload
+    is_test = payload_data.get("test_mode", False) if isinstance(payload_data, dict) else False
+    if is_test:
+        logger.info(
+            "[TEST] Storing test-mode telemetry for device %s",
+            device.device_name,
+        )
+
     # Insert the telemetry record
     record = Telemetry(
         device_id=device.id,
@@ -145,7 +153,9 @@ def _handle_telemetry(db, Device, Telemetry, parsed, raw_payload):
     db.session.add(record)
     db.session.commit()
 
-    logger.debug("Stored telemetry for device %s (id=%s)", device.device_name, device.id)
+    logger.debug("Stored telemetry for device %s (id=%s)%s",
+                 device.device_name, device.id,
+                 " [TEST]" if is_test else "")
 
 
 def _handle_status(db, Device, parsed, raw_payload):

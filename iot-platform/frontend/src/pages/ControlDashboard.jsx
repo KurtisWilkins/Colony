@@ -11,7 +11,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { Button, Card, Badge, AlertBanner, Loader } from '../components/ui';
+import { Button, Card, Badge, AlertBanner, Loader, ProgressBar } from '../components/ui';
 import GaugeBar from '../components/GaugeBar';
 import ActuatorIndicator from '../components/ActuatorIndicator';
 import DeviceSelector from '../components/DeviceSelector';
@@ -30,6 +30,8 @@ import {
   getTelemetry,
   getDeviceState,
   getAutomationEvents,
+  enableTestMode,
+  disableTestMode,
 } from '../utils/api';
 import { terminalChartTheme, terminalLineDataset } from '../styles/chartTheme';
 
@@ -306,6 +308,13 @@ function ControlDashboard() {
   const deviceName = s.device_name ?? s.name ?? deviceId;
   const valveSafetyMin = s.valve_safety_minutes ?? s.valve_safety_timeout_min ?? 10;
 
+  // Test mode state — derived from latest telemetry payload
+  const latestPayload = s.latest_telemetry?.payload || {};
+  const isTestMode = latestPayload.test_mode === true;
+  const testPhase = latestPayload.test_phase || '';
+  const testCycleProgress = latestPayload.test_cycle_progress_pct ?? 0;
+  const testGaugeColor = isTestMode ? 'var(--color-amber)' : undefined;
+
   // ── Sparkline chart ────────────────────────────────────────────────
 
   const sortedTelemetry = [...telemetryData].sort(
@@ -441,6 +450,18 @@ function ControlDashboard() {
         </AlertBanner>
       )}
 
+      {isTestMode && (
+        <AlertBanner variant="warning">
+          TEST MODE ACTIVE — Readings are simulated. Actuator commands are virtual only.
+          <div style={{ marginTop: 'var(--space-2)' }}>
+            <ProgressBar value={testCycleProgress} variant="warning" showLabel />
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-amber)', marginTop: 'var(--space-1)' }}>
+              {testPhase.toUpperCase()}
+            </div>
+          </div>
+        </AlertBanner>
+      )}
+
       {/* ═══ SECTION 2: LIVE SENSOR GAUGES ═══ */}
       <div style={styles.gaugeGrid}>
         {/* Left column — Gauge bars */}
@@ -455,6 +476,7 @@ function ControlDashboard() {
             criticalLow={10}
             criticalHigh={30}
             unit="\u00B0C"
+            colorOverride={testGaugeColor}
           />
           <GaugeBar
             label="HUMIDITY"
@@ -466,6 +488,7 @@ function ControlDashboard() {
             criticalLow={60}
             criticalHigh={100}
             unit="%"
+            colorOverride={testGaugeColor}
           />
           <GaugeBar
             label={co2WarmingUp ? 'CO2 (WARMING UP)' : 'CO2'}
@@ -476,6 +499,7 @@ function ControlDashboard() {
             criticalHigh={1500}
             unit="ppm"
             loading={co2WarmingUp}
+            colorOverride={testGaugeColor}
           />
           <GaugeBar
             label="TANK LEVEL"
@@ -485,6 +509,7 @@ function ControlDashboard() {
             warningLow={20}
             criticalLow={10}
             unit="%"
+            colorOverride={testGaugeColor}
           />
         </div>
 
@@ -675,6 +700,61 @@ function ControlDashboard() {
               </div>
             )}
           </div>
+        </div>
+      </Card>
+
+      {/* ═══ TEST MODE CARD ═══ */}
+      <Card
+        title="[ TEST MODE ]"
+        style={{ marginBottom: 'var(--space-4)' }}
+      >
+        <div style={styles.testModeSubtitle}>
+          Simulate sensors and virtual actuator control
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+          <Badge variant={isTestMode ? 'warning' : 'offline'}>
+            {isTestMode ? 'TEST ACTIVE' : 'INACTIVE'}
+          </Badge>
+
+          {isTestMode ? (
+            <Button
+              variant="danger"
+              size="sm"
+              loading={btnLoading('testOff')}
+              disabled={btnDisabled('testOff')}
+              onClick={withCooldown('testOff', () => disableTestMode(deviceId))}
+            >
+              {btnLabel('testOff', 'DISABLE TEST MODE')}
+            </Button>
+          ) : (
+            <Button
+              variant={confirms['testOn'] ? 'amber' : 'primary'}
+              size="sm"
+              loading={btnLoading('testOn')}
+              disabled={btnDisabled('testOn')}
+              onClick={withConfirm('testOn', () => enableTestMode(deviceId))}
+            >
+              {confirms['testOn'] ? 'CONFIRM? This will simulate sensor data.' : btnLabel('testOn', 'ENABLE TEST MODE')}
+            </Button>
+          )}
+        </div>
+
+        {isTestMode && (
+          <div style={{ marginBottom: 'var(--space-3)' }}>
+            <div style={styles.testModeSubtitle}>
+              CYCLE PROGRESS: {testCycleProgress}%
+            </div>
+            <ProgressBar value={testCycleProgress} variant="warning" showLabel />
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-amber)', marginTop: 'var(--space-1)' }}>
+              {testPhase.toUpperCase()}
+            </div>
+          </div>
+        )}
+
+        <div style={styles.testModeNote}>
+          Test readings are marked in the database and can be excluded from charts.
+          No physical outputs are activated.
         </div>
       </Card>
 
@@ -946,6 +1026,24 @@ const styles = {
     fontFamily: 'var(--font-mono)',
     fontSize: 'var(--text-sm)',
     textShadow: 'var(--glow-text)',
+  },
+
+  // Test mode
+  testModeSubtitle: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-xs)',
+    color: 'var(--color-phosphor-ghost)',
+    letterSpacing: 'var(--letter-spacing-wide)',
+    marginBottom: 'var(--space-3)',
+  },
+  testModeNote: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--text-xs)',
+    color: 'var(--color-phosphor-ghost)',
+    padding: 'var(--space-2) var(--space-3)',
+    background: 'rgba(255,176,0,0.03)',
+    borderLeft: '2px solid var(--color-border)',
+    lineHeight: 'var(--leading-relaxed)',
   },
 };
 

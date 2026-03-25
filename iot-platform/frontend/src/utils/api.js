@@ -231,3 +231,13 @@ export function assignDevice(deviceId, data) {
 export function unassignDevice(deviceId) {
   return request(`/api/manage/devices/${deviceId}/assign`, { method: 'DELETE' });
 }
+
+// ── Test Mode ────────────────────────────────────────────────────────────
+
+export function enableTestMode(deviceId) {
+  return request(`/api/control/${deviceId}/test_mode/on`, { method: 'POST' });
+}
+
+export function disableTestMode(deviceId) {
+  return request(`/api/control/${deviceId}/test_mode/off`, { method: 'POST' });
+}

@@ -5,6 +5,7 @@
 #include "actuators.h"
 #include "flow_meter.h"
 #include "automation.h"
+#include "test_mode.h"
 #include <ArduinoJson.h>
 
 MqttClient mqttClient;
@@ -214,6 +215,22 @@ void MqttClient::handleCommand(const char* payload) {
         storage.factoryReset();
         ESP.restart();
     }
+    else if (command == "set_test_mode") {
+        JsonObject payload = doc["payload"];
+        bool enabled = payload["enabled"] | false;
+        if (testMode.isEnabled()) {
+            testMode.printCommandReceived(command, enabled ? "enabled:true" : "enabled:false");
+        }
+        if (enabled) {
+            testMode.enable();
+            publishAck(cmd, true, "Test mode enabled");
+        } else {
+            testMode.disable();
+            publishAck(cmd, true, "Test mode disabled");
+        }
+        // Publish status immediately to announce mode change
+        publishStatus();
+    }
     else {
         publishAck(cmd, false, "Unknown command");
     }
@@ -250,7 +267,7 @@ void MqttClient::handleConfig(const char* payload) {
 void MqttClient::publishTelemetry() {
     if (!client.connected()) return;
 
-    StaticJsonDocument<768> doc;
+    StaticJsonDocument<1024> doc;
 
     doc["temperature"]      = serialized(String(sensors.readings.temperature, 1));
     doc["humidity"]          = serialized(String(sensors.readings.humidity, 1));
@@ -272,12 +289,24 @@ void MqttClient::publishTelemetry() {
     doc["mhz19_ok"]          = sensors.readings.mhz19_ok;
     doc["ultrasonic_ok"]     = sensors.readings.ultrasonic_ok;
 
-    char buffer[768];
+    // Test mode fields
+    doc["test_mode"]         = testMode.isEnabled();
+    if (testMode.isEnabled()) {
+        doc["test_phase"]                = testMode.getPhaseDescription();
+        doc["test_cycle_progress_pct"]   = testMode.getCycleProgressPct();
+    }
+
+    char buffer[1024];
     size_t len = serializeJson(doc, buffer, sizeof(buffer));
 
     String topic = topicFor("telemetry");
     client.publish(topic.c_str(), buffer, false);
-    logMsg("DEBUG", "Published telemetry (%d bytes)", len);
+
+    if (testMode.isEnabled()) {
+        testMode.printPublished(topic, len);
+    } else {
+        logMsg("DEBUG", "Published telemetry (%d bytes)", len);
+    }
 }
 
 void MqttClient::publishStatus() {
@@ -289,6 +318,7 @@ void MqttClient::publishStatus() {
     doc["rssi"]              = WiFi.RSSI();
     doc["free_heap"]         = ESP.getFreeHeap();
     doc["firmware_version"]  = FIRMWARE_VERSION;
+    doc["test_mode"]         = testMode.isEnabled();
 
     char buffer[256];
     serializeJson(doc, buffer, sizeof(buffer));
@@ -301,13 +331,25 @@ void MqttClient::publishStatus() {
 void MqttClient::publishFlow(float flow_lpm, float session_liters, float total_liters) {
     if (!client.connected()) return;
 
-    StaticJsonDocument<192> doc;
-    doc["flow_lpm"]          = serialized(String(flow_lpm, 2));
-    doc["session_liters"]    = serialized(String(session_liters, 3));
-    doc["total_liters"]      = serialized(String(total_liters, 3));
-    doc["valve_open"]        = actuators.isValveOpen();
+    StaticJsonDocument<256> doc;
 
-    char buffer[192];
+    if (testMode.isEnabled()) {
+        VirtualActuatorState va = testMode.getActuatorState();
+        SimulatedReadings sim = testMode.generateReadings();
+        doc["flow_lpm"]      = serialized(String(sim.flow_rate_lpm, 2));
+        doc["session_liters"]= serialized(String(va.session_liters_virtual, 3));
+        doc["total_liters"]  = serialized(String(total_liters, 3));
+        doc["valve_open"]    = va.valve_open;
+        doc["test_mode"]     = true;
+    } else {
+        doc["flow_lpm"]          = serialized(String(flow_lpm, 2));
+        doc["session_liters"]    = serialized(String(session_liters, 3));
+        doc["total_liters"]      = serialized(String(total_liters, 3));
+        doc["valve_open"]        = actuators.isValveOpen();
+        doc["test_mode"]         = false;
+    }
+
+    char buffer[256];
     serializeJson(doc, buffer, sizeof(buffer));
 
     String topic = topicFor("flow");
