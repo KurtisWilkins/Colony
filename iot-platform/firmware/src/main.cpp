@@ -10,6 +10,7 @@
 #include "captive_portal.h"
 #include "automation.h"
 #include "flow_meter.h"
+#include "test_mode.h"
 
 // ============================================================================
 // Logging
@@ -127,6 +128,9 @@ void setup() {
            storage.data.building.c_str(),
            storage.data.unit.c_str(),
            storage.data.device_name.c_str());
+
+    // Load test mode state from NVS (before sensor/actuator init)
+    testMode.loadFromNVS();
 
     // Initialize actuators (safe state first)
     actuators.begin();
@@ -292,6 +296,9 @@ void loop() {
             );
         }
     }
+
+    // ---- Test Mode Update ----
+    testMode.update();
 
     // ---- Automation ----
     automation.update();

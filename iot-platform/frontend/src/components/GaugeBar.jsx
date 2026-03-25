@@ -25,12 +25,14 @@ function GaugeBar({
   criticalLow,
   criticalHigh,
   loading = false,
+  colorOverride,
 }) {
   const range = max - min || 1;
   const clamped = value != null ? Math.max(min, Math.min(max, value)) : null;
   const pct = clamped != null ? ((clamped - min) / range) * 100 : 0;
 
   function getBarColor() {
+    if (colorOverride) return colorOverride;
     if (value == null) return 'var(--color-phosphor-ghost)';
     if (criticalLow != null && value < criticalLow) return 'var(--color-red-alert)';
     if (criticalHigh != null && value > criticalHigh) return 'var(--color-red-alert)';

@@ -92,6 +92,28 @@
 #define DNS_PORT                53
 
 // ============================================================================
+// Test Mode Defaults
+// ============================================================================
+#define TEST_MODE_DEFAULT        false
+#define TEST_INTERVAL_S          300     // Same as real sensor interval
+
+// Simulated value ranges (realistic mushroom grow tent values)
+#define SIM_TEMP_MIN             18.0f   // deg C
+#define SIM_TEMP_MAX             26.0f   // deg C
+#define SIM_HUMIDITY_MIN         65.0f   // %
+#define SIM_HUMIDITY_MAX         98.0f   // %
+#define SIM_CO2_MIN              600     // ppm
+#define SIM_CO2_MAX              1800    // ppm
+#define SIM_PRESSURE_MIN         1008.0f // hPa
+#define SIM_PRESSURE_MAX         1020.0f // hPa
+#define SIM_TANK_DEPTH_MIN       4.0f    // cm (full)
+#define SIM_TANK_DEPTH_MAX       38.0f   // cm (empty)
+#define SIM_FLOW_RATE_LPM        2.8f    // L/min when valve open
+
+// Simulation cycle period (seconds) - one full environment cycle
+#define SIM_CYCLE_PERIOD_S       3600    // 1 hour full cycle
+
+// ============================================================================
 // NVS Namespace
 // ============================================================================
 #define NVS_NAMESPACE           "growtent"
