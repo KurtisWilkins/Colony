@@ -218,20 +218,25 @@ function App() {
         <main style={styles.mainContent}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            {/* Device-specific pages (must come before /devices/:facility) */}
+            <Route path="/devices/control" element={<ControlDashboard />} />
+            <Route path="/devices/thresholds" element={<ThresholdConfig />} />
+            <Route path="/devices/:deviceId/control" element={<ControlDashboard />} />
+            <Route path="/devices/:deviceId/thresholds" element={<ThresholdConfig />} />
+            <Route path="/devices/:deviceId/water" element={<WaterUsage />} />
+            {/* Hierarchy browsing */}
             <Route path="/devices" element={<HierarchyView />} />
             <Route path="/devices/:facility" element={<BuildingList />} />
             <Route path="/devices/:facility/:building" element={<UnitList />} />
             <Route path="/devices/:facility/:building/:unit" element={<DeviceList />} />
+            {/* Device detail */}
             <Route path="/device/:deviceId" element={<DeviceDetail />} />
-            <Route path="/devices/:deviceId/control" element={<ControlDashboard />} />
-            <Route path="/devices/:deviceId/thresholds" element={<ThresholdConfig />} />
-            <Route path="/devices/:deviceId/water" element={<WaterUsage />} />
-            <Route path="/devices/control" element={<ControlDashboard />} />
-            <Route path="/devices/thresholds" element={<ThresholdConfig />} />
+            {/* Grow tent pages */}
             <Route path="/water" element={<WaterUsage />} />
             <Route path="/wiring" element={<WiringGuide />} />
             <Route path="/setup-guide" element={<SetupGuide />} />
             <Route path="/register" element={<RegisterDevice />} />
+            {/* System management */}
             <Route path="/manage" element={<HierarchyOverview />} />
             <Route path="/manage/facilities" element={<FacilityManager />} />
             <Route path="/manage/buildings" element={<BuildingManager />} />
