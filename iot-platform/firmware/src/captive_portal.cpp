@@ -1,8 +1,8 @@
 #include "captive_portal.h"
 #include "config.h"
 #include "storage.h"
+#include "portal_html.h"
 #include <WiFi.h>
-#include <SPIFFS.h>
 #include <ArduinoJson.h>
 
 CaptivePortal captivePortal;
@@ -46,19 +46,8 @@ void CaptivePortal::loop() {
 }
 
 void CaptivePortal::handleRoot() {
-    if (SPIFFS.exists("/portal.html")) {
-        File file = SPIFFS.open("/portal.html", "r");
-        server.streamFile(file, "text/html");
-        file.close();
-    } else {
-        server.send(200, "text/html",
-            "<!DOCTYPE html><html><body>"
-            "<h1>GrowTent Setup</h1>"
-            "<p>Error: portal.html not found in SPIFFS.</p>"
-            "<p>Upload the data/ folder using: pio run --target uploadfs</p>"
-            "</body></html>"
-        );
-    }
+    // Serve the embedded HTML from PROGMEM — no SPIFFS upload needed
+    server.send_P(200, "text/html", PORTAL_HTML);
 }
 
 void CaptivePortal::handleScan() {
