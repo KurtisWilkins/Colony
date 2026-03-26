@@ -135,6 +135,16 @@ def create_app():
             if os.path.isfile(install_md):
                 zf.write(install_md, "INSTALL_LIBRARIES.md")
 
+            readme_md = os.path.join(firmware_dir, "arduino", "README_INSTALL.md")
+            if os.path.isfile(readme_md):
+                zf.write(readme_md, "README_INSTALL.md")
+
+            # Include dependency installer scripts
+            for installer in ("install_dependencies.py", "install_dependencies.bat", "install_dependencies.sh"):
+                ipath = os.path.join(firmware_dir, installer)
+                if os.path.isfile(ipath):
+                    zf.write(ipath, installer)
+
         buf.seek(0)
         return send_file(
             buf,
