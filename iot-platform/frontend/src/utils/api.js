@@ -3,7 +3,7 @@
  * All functions use fetch() and return parsed JSON promises.
  */
 
-const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+const BASE = import.meta.env.VITE_API_BASE || '';
 
 function request(path, options = {}) {
   const url = `${BASE}${path}`;
