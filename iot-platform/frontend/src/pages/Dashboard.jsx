@@ -46,8 +46,9 @@ function Dashboard() {
     return <AlertBanner variant="error">{error}</AlertBanner>;
   }
 
-  const facilitiesArr = hierarchy?.facilities || [];
-  const totalFacilities = facilitiesArr.length;
+  const totalFacilities = status?.total_facilities ?? 0;
+  const totalBuildings = status?.total_buildings ?? 0;
+  const totalUnits = status?.total_units ?? 0;
   const onlineCount = status?.online_devices ?? 0;
   const offlineCount = status?.offline_devices ?? 0;
   const totalDevices = onlineCount + offlineCount;
@@ -62,6 +63,8 @@ function Dashboard() {
 
       <div style={styles.statGrid}>
         <StatCard value={totalFacilities} label="FACILITIES" />
+        <StatCard value={totalBuildings} label="BUILDINGS" />
+        <StatCard value={totalUnits} label="UNITS" />
         <StatCard value={totalDevices} label="TOTAL DEVICES" />
         <StatCard value={onlineCount} label="ONLINE" trend={onlineCount > 0 ? 'up' : null} />
         <StatCard value={offlineCount} label="OFFLINE" trend={offlineCount > 0 ? 'down' : null} />
