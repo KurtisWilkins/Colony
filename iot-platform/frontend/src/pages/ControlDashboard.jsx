@@ -290,29 +290,29 @@ function ControlDashboard() {
   // ── Derived state ──────────────────────────────────────────────────
 
   const s = device || {};
-  const sensors = s.sensors || s;
-  const temperature = sensors.temperature ?? sensors.temp_c ?? null;
-  const humidity = sensors.humidity ?? sensors.humidity_pct ?? null;
-  const co2 = sensors.co2 ?? sensors.co2_ppm ?? null;
-  const co2WarmingUp = s.co2_warming_up || sensors.co2_warming_up || false;
-  const tankLevel = sensors.tank_level ?? sensors.tank_level_pct ?? null;
+  const p = s.latest_telemetry?.payload || {};
+  const sensors = s.sensors || p;
+  const temperature = sensors.temperature ?? sensors.temp_c ?? p.temperature ?? null;
+  const humidity = sensors.humidity ?? sensors.humidity_pct ?? p.humidity ?? null;
+  const co2 = sensors.co2 ?? sensors.co2_ppm ?? p.co2_ppm ?? null;
+  const co2WarmingUp = s.co2_warming_up || p.co2_warming_up || false;
+  const tankLevel = sensors.tank_level ?? sensors.tank_level_pct ?? p.tank_pct ?? null;
 
-  const fanOn = s.fan_on ?? s.fan_state === 'on' ?? false;
-  const fanSpeed = s.fan_speed ?? s.fan_speed_pct ?? 0;
-  const misterOn = s.mister_on ?? s.mister_state === 'on' ?? false;
-  const valveOpen = s.valve_open ?? s.valve_state === 'open' ?? false;
-  const autonomousMode = s.autonomous_mode ?? false;
+  const fanOn = p.fan_on ?? s.fan_on ?? false;
+  const fanSpeed = p.fan_speed_pct ?? s.fan_speed ?? s.fan_speed_pct ?? 0;
+  const misterOn = p.mister_on ?? s.mister_on ?? false;
+  const valveOpen = p.valve_open ?? s.valve_open ?? false;
+  const autonomousMode = p.autonomous_mode ?? s.autonomous_mode ?? false;
   const isOnline = s.online ?? s.is_online ?? false;
   const lastSeen = s.last_seen ?? s.last_seen_at ?? null;
-  const rssi = s.wifi_rssi ?? s.rssi ?? null;
+  const rssi = p.rssi ?? s.wifi_rssi ?? s.rssi ?? null;
   const deviceName = s.device_name ?? s.name ?? deviceId;
   const valveSafetyMin = s.valve_safety_minutes ?? s.valve_safety_timeout_min ?? 10;
 
   // Test mode state — derived from latest telemetry payload
-  const latestPayload = s.latest_telemetry?.payload || {};
-  const isTestMode = latestPayload.test_mode === true;
-  const testPhase = latestPayload.test_phase || '';
-  const testCycleProgress = latestPayload.test_cycle_progress_pct ?? 0;
+  const isTestMode = p.test_mode === true;
+  const testPhase = p.test_phase || '';
+  const testCycleProgress = p.test_cycle_progress_pct ?? 0;
   const testGaugeColor = isTestMode ? 'var(--color-amber)' : undefined;
 
   // ── Sparkline chart ────────────────────────────────────────────────
@@ -399,6 +399,22 @@ function ControlDashboard() {
   }
 
   // ── Loading state ──────────────────────────────────────────────────
+
+  if (!deviceId) {
+    return (
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <DeviceSelector
+          value={deviceId}
+          onSelect={(id) => navigate(`/devices/${id}/control`)}
+        />
+        <Card>
+          <div style={styles.emptyState}>
+            SELECT A DEVICE ABOVE TO VIEW CONTROLS
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   if (deviceLoading && !device) {
     return <Loader type="spin" text="LOADING DEVICE STATE" />;
