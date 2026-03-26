@@ -103,7 +103,7 @@ def create_app():
 
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-            # Include all source files
+            # Include PlatformIO source files
             for fname in sorted(os.listdir(src_dir)):
                 fpath = os.path.join(src_dir, fname)
                 if os.path.isfile(fpath):
@@ -121,6 +121,19 @@ def create_app():
                     fpath = os.path.join(data_dir, fname)
                     if os.path.isfile(fpath):
                         zf.write(fpath, os.path.join("firmware", "data", fname))
+
+            # Include Arduino IDE compatible folder (growtent/growtent.ino)
+            arduino_dir = os.path.join(firmware_dir, "arduino", "growtent")
+            if os.path.isdir(arduino_dir):
+                for fname in sorted(os.listdir(arduino_dir)):
+                    fpath = os.path.join(arduino_dir, fname)
+                    if os.path.isfile(fpath):
+                        zf.write(fpath, os.path.join("growtent", fname))
+
+            # Include Arduino install instructions
+            install_md = os.path.join(firmware_dir, "arduino", "INSTALL_LIBRARIES.md")
+            if os.path.isfile(install_md):
+                zf.write(install_md, "INSTALL_LIBRARIES.md")
 
         buf.seek(0)
         return send_file(

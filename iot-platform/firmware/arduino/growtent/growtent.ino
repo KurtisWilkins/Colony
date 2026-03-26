@@ -1,3 +1,35 @@
+/*
+ * GROW TENT CONTROLLER — COLONY-MAIN
+ * ESP32-WROOM-32D Firmware v1.0.0
+ *
+ * ARDUINO IDE SETUP:
+ * Board: ESP32 Dev Module
+ * Port: COM5 (or your port)
+ * Upload Speed: 921600
+ * CPU Frequency: 240MHz
+ * Flash Size: 4MB (32Mb)
+ * Partition: Default 4MB with spiffs
+ *
+ * REQUIRED LIBRARIES (install via Tools > Manage Libraries):
+ *
+ * Adafruit BME280 Library by Adafruit (v2.2.2+)
+ *
+ * Adafruit Unified Sensor by Adafruit (v1.1.9+)
+ *
+ * PubSubClient by Nick O'Leary (v2.8+)
+ *
+ * ArduinoJson by Benoit Blanchot (v6.21.3+)
+ *
+ * MH-Z19 by Jonathan Dempsey (v1.5.3+)
+ *
+ * TEST MODE: Currently set to boot in TEST MODE by default.
+ * No sensors or relays need to be wired to test communications.
+ * Disable via MQTT command: set_test_mode { "enabled": false }
+ *
+ * UPLOAD: Hold BOOT button when you see "Connecting......"
+ * in the output, release when upload percentage appears.
+ */
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <SPIFFS.h>

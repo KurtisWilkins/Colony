@@ -16,6 +16,7 @@ import ControlDashboard from './pages/ControlDashboard';
 import ThresholdConfig from './pages/ThresholdConfig';
 import WaterUsage from './pages/WaterUsage';
 import WiringGuide from './pages/WiringGuide';
+import SetupGuide from './pages/SetupGuide';
 import HierarchyOverview from './pages/management/HierarchyOverview';
 import FacilityManager from './pages/management/FacilityManager';
 import BuildingManager from './pages/management/BuildingManager';
@@ -64,6 +65,7 @@ function App() {
     { to: '/devices/thresholds', label: '\u2261 THRESHOLDS' },
     { to: '/water', label: '\u224B WATER USAGE' },
     { to: '/wiring', label: '\u26A1 WIRING GUIDE' },
+    { to: '/setup-guide', label: '\u25B6 SETUP GUIDE' },
   ];
 
   const managementItems = [
@@ -228,6 +230,7 @@ function App() {
             <Route path="/devices/thresholds" element={<ThresholdConfig />} />
             <Route path="/water" element={<WaterUsage />} />
             <Route path="/wiring" element={<WiringGuide />} />
+            <Route path="/setup-guide" element={<SetupGuide />} />
             <Route path="/register" element={<RegisterDevice />} />
             <Route path="/manage" element={<HierarchyOverview />} />
             <Route path="/manage/facilities" element={<FacilityManager />} />
