@@ -228,7 +228,7 @@ def fan_speed(device_id):
     if not isinstance(speed_pct, (int, float)) or speed_pct < 0 or speed_pct > 100:
         return jsonify({"error": "speed_pct must be a number between 0 and 100"}), 400
 
-    cmd = _publish_command(device, "fan_speed", {"speed_pct": int(speed_pct)})
+    cmd = _publish_command(device, "set_fan_speed", {"speed_pct": int(speed_pct)})
     return jsonify(cmd.to_dict()), 201
 
 
@@ -303,7 +303,7 @@ def fill_start(device_id):
     if err:
         return err
 
-    cmd = _publish_command(device, "fill_start")
+    cmd = _publish_command(device, "fill_tank")
     return jsonify(cmd.to_dict()), 201
 
 
@@ -318,7 +318,7 @@ def fill_stop(device_id):
     if err:
         return err
 
-    cmd = _publish_command(device, "fill_stop")
+    cmd = _publish_command(device, "stop_fill")
     return jsonify(cmd.to_dict()), 201
 
 

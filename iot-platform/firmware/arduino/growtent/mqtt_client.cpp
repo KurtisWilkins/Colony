@@ -145,7 +145,7 @@ void MqttClient::handleCommand(const char* payload) {
     logMsg("INFO", "Command received: %s", cmd);
 
     if (command == "set_fan_speed") {
-        int speed = doc["value"] | -1;
+        int speed = doc["value"] | (doc["payload"]["speed_pct"] | -1);
         if (speed < 0 || speed > 100) {
             publishAck(cmd, false, "Invalid speed (0-100)");
             return;
@@ -155,7 +155,7 @@ void MqttClient::handleCommand(const char* payload) {
         publishAck(cmd, true, "Fan speed set");
     }
     else if (command == "fan_on") {
-        int speed = doc["value"] | -1;
+        int speed = doc["value"] | (doc["payload"]["speed_pct"] | -1);
         actuators.fanOn(speed);
         automation.setManualOverride(true);
         publishAck(cmd, true, "Fan on");
