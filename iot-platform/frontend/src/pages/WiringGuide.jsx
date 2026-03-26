@@ -502,10 +502,20 @@ function WiringGuide() {
 
           <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
             <Button size="sm" variant="secondary" onClick={() => {
-              const a = document.createElement('a');
-              a.href = '/api/firmware/download';
-              a.download = 'growtent-firmware.zip';
-              a.click();
+              fetch('/api/firmware/download', { credentials: 'include' })
+                .then((r) => {
+                  if (!r.ok) throw new Error('Download failed');
+                  return r.blob();
+                })
+                .then((blob) => {
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'growtent-firmware.zip';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                })
+                .catch((err) => alert(err.message));
             }}>
               DOWNLOAD ZIP
             </Button>
