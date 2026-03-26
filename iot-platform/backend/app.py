@@ -6,12 +6,14 @@ Flask application entry point for the IoT Platform backend.
 """
 
 import os
+import io
 import time
+import zipfile
 import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timezone
 
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 
 import config
@@ -83,6 +85,50 @@ def create_app():
     def health():
         """Simple health check -- returns 200 with {"status": "ok"}."""
         return jsonify({"status": "ok"}), 200
+
+    # ------------------------------------------------------------------
+    # Firmware download endpoint
+    # ------------------------------------------------------------------
+    @app.route("/api/firmware/download", methods=["GET"])
+    @login_required
+    def download_firmware():
+        """Zip the firmware src/ directory and return as a downloadable file."""
+        firmware_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "firmware")
+        )
+        src_dir = os.path.join(firmware_dir, "src")
+
+        if not os.path.isdir(src_dir):
+            return jsonify({"error": "Firmware source directory not found"}), 404
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            # Include all source files
+            for fname in sorted(os.listdir(src_dir)):
+                fpath = os.path.join(src_dir, fname)
+                if os.path.isfile(fpath):
+                    zf.write(fpath, os.path.join("firmware", "src", fname))
+
+            # Include platformio.ini if present
+            pio_ini = os.path.join(firmware_dir, "platformio.ini")
+            if os.path.isfile(pio_ini):
+                zf.write(pio_ini, os.path.join("firmware", "platformio.ini"))
+
+            # Include data/ directory for SPIFFS
+            data_dir = os.path.join(firmware_dir, "data")
+            if os.path.isdir(data_dir):
+                for fname in sorted(os.listdir(data_dir)):
+                    fpath = os.path.join(data_dir, fname)
+                    if os.path.isfile(fpath):
+                        zf.write(fpath, os.path.join("firmware", "data", fname))
+
+        buf.seek(0)
+        return send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name="growtent-firmware.zip",
+        )
 
     # ------------------------------------------------------------------
     # Status endpoint -- aggregate platform statistics

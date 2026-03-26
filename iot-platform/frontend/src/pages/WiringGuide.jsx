@@ -500,7 +500,15 @@ function WiringGuide() {
             <code>{firmwareFiles[activeFile]}</code>
           </pre>
 
-          <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+            <Button size="sm" variant="secondary" onClick={() => {
+              const a = document.createElement('a');
+              a.href = '/api/firmware/download';
+              a.download = 'growtent-firmware.zip';
+              a.click();
+            }}>
+              DOWNLOAD ZIP
+            </Button>
             <Button size="sm" variant={copyLabel === 'COPIED!' ? 'amber' : 'primary'} onClick={handleCopy}>
               {copyLabel}
             </Button>
