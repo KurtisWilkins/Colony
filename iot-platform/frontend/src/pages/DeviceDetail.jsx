@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   Chart as ChartJS,
@@ -13,13 +13,15 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { Card, Badge, Button, Input, Select, Textarea, AlertBanner, Loader, Table } from '../components/ui';
+import { Card, Badge, Button, Select, AlertBanner, Loader, Table } from '../components/ui';
+import { getFacilities, getBuildings, getUnits, assignDevice } from '../utils/api';
 import { terminalChartTheme, terminalLineDataset } from '../styles/chartTheme';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 function DeviceDetail() {
   const { deviceId } = useParams();
+  const navigate = useNavigate();
 
   const [device, setDevice] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -29,12 +31,14 @@ function DeviceDetail() {
   const [commands, setCommands] = useState([]);
   const [commandMsg, setCommandMsg] = useState(null);
 
-  const [relayNumber, setRelayNumber] = useState(1);
-  const [relayState, setRelayState] = useState('on');
-  const [pollingInterval, setPollingInterval] = useState(60);
-  const [motorDirection, setMotorDirection] = useState('forward');
-  const [motorSteps, setMotorSteps] = useState(100);
-  const [customCommand, setCustomCommand] = useState('');
+  // Assignment state
+  const [facilities, setFacilities] = useState([]);
+  const [buildings, setBuildings] = useState([]);
+  const [units, setUnits] = useState([]);
+  const [assignFacility, setAssignFacility] = useState('');
+  const [assignBuilding, setAssignBuilding] = useState('');
+  const [assignUnit, setAssignUnit] = useState('');
+  const [assigning, setAssigning] = useState(false);
 
   const fetchDevice = useCallback(async () => {
     try {
@@ -92,15 +96,39 @@ function DeviceDetail() {
     return () => clearInterval(interval);
   }, [fetchLatestTelemetry]);
 
-  const sendCommand = async (commandType, payload) => {
+  // Load facilities for assignment
+  useEffect(() => {
+    getFacilities().then(setFacilities).catch(() => {});
+  }, []);
+
+  // Load buildings when facility selected
+  useEffect(() => {
+    if (!assignFacility) { setBuildings([]); setAssignBuilding(''); return; }
+    getBuildings(assignFacility).then(setBuildings).catch(() => setBuildings([]));
+    setAssignBuilding('');
+    setAssignUnit('');
+  }, [assignFacility]);
+
+  // Load units when building selected
+  useEffect(() => {
+    if (!assignBuilding) { setUnits([]); setAssignUnit(''); return; }
+    getUnits(assignBuilding).then(setUnits).catch(() => setUnits([]));
+    setAssignUnit('');
+  }, [assignBuilding]);
+
+  const handleAssign = async () => {
+    if (!assignUnit) return;
+    setAssigning(true);
     try {
-      await axios.post(`/api/commands/${deviceId}`, { command_type: commandType, payload });
-      setCommandMsg({ type: 'success', text: `COMMAND "${commandType.toUpperCase()}" SENT SUCCESSFULLY.` });
-      fetchCommands();
+      await assignDevice(deviceId, { unit_id: assignUnit });
+      setCommandMsg({ type: 'success', text: 'DEVICE ASSIGNED TO UNIT SUCCESSFULLY.' });
+      fetchDevice();
     } catch (err) {
-      setCommandMsg({ type: 'error', text: `FAILED TO SEND COMMAND: ${err.response?.data?.error || err.message}` });
+      setCommandMsg({ type: 'error', text: `ASSIGNMENT FAILED: ${err.message}` });
+    } finally {
+      setAssigning(false);
+      setTimeout(() => setCommandMsg(null), 5000);
     }
-    setTimeout(() => setCommandMsg(null), 5000);
   };
 
   if (loading) {
@@ -154,7 +182,6 @@ function DeviceDetail() {
     },
   };
 
-  // Command history table data
   const cmdColumns = ['ISSUED AT', 'COMMAND TYPE', 'PAYLOAD', 'ACK'];
   const cmdData = commands.map((cmd) => [
     new Date(cmd.issued_at).toLocaleString(),
@@ -169,7 +196,12 @@ function DeviceDetail() {
       <Card title="DEVICE INFO" style={{ marginBottom: 'var(--space-4)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
           <h1 style={styles.deviceName}>{device.device_name.toUpperCase()}</h1>
-          <Badge variant={device.is_online ? 'online' : 'offline'} />
+          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+            <Badge variant={device.is_online ? 'online' : 'offline'} />
+            <Button size="sm" onClick={() => navigate(`/devices/${deviceId}/control`)}>
+              CONTROL DASHBOARD
+            </Button>
+          </div>
         </div>
         <div style={styles.metaGrid}>
           <span style={styles.metaItem}><span style={styles.metaLabel}>FACILITY:</span> {device.facility}</span>
@@ -177,6 +209,54 @@ function DeviceDetail() {
           <span style={styles.metaItem}><span style={styles.metaLabel}>UNIT:</span> {device.unit}</span>
           <span style={styles.metaItem}><span style={styles.metaLabel}>TYPE:</span> {device.device_type}</span>
         </div>
+      </Card>
+
+      {/* Device Assignment */}
+      <Card title="ASSIGN TO HIERARCHY" style={{ marginBottom: 'var(--space-4)' }}>
+        {commandMsg && (
+          <AlertBanner variant={commandMsg.type} dismissible onDismiss={() => setCommandMsg(null)}>
+            {commandMsg.text}
+          </AlertBanner>
+        )}
+        <div style={styles.assignGrid}>
+          <Select
+            label="FACILITY"
+            value={assignFacility}
+            onChange={(e) => setAssignFacility(e.target.value)}
+            options={[
+              { value: '', label: '[ SELECT FACILITY ]' },
+              ...facilities.map(f => ({ value: f.id, label: f.name.toUpperCase() })),
+            ]}
+          />
+          <Select
+            label="BUILDING"
+            value={assignBuilding}
+            onChange={(e) => setAssignBuilding(e.target.value)}
+            options={[
+              { value: '', label: assignFacility ? '[ SELECT BUILDING ]' : '[ SELECT FACILITY FIRST ]' },
+              ...buildings.map(b => ({ value: b.id, label: b.name.toUpperCase() })),
+            ]}
+          />
+          <Select
+            label="UNIT"
+            value={assignUnit}
+            onChange={(e) => setAssignUnit(e.target.value)}
+            options={[
+              { value: '', label: assignBuilding ? '[ SELECT UNIT ]' : '[ SELECT BUILDING FIRST ]' },
+              ...units.map(u => ({ value: u.id, label: u.name.toUpperCase() })),
+            ]}
+          />
+        </div>
+        <Button
+          size="sm"
+          variant="primary"
+          onClick={handleAssign}
+          loading={assigning}
+          disabled={!assignUnit}
+          style={{ marginTop: 'var(--space-3)' }}
+        >
+          ASSIGN DEVICE
+        </Button>
       </Card>
 
       {/* Live telemetry */}
@@ -225,137 +305,6 @@ function DeviceDetail() {
         )}
       </Card>
 
-      {/* Command panel */}
-      <Card title="SEND COMMANDS" style={{ marginBottom: 'var(--space-4)' }}>
-        {commandMsg && (
-          <AlertBanner variant={commandMsg.type} dismissible>
-            {commandMsg.text}
-          </AlertBanner>
-        )}
-
-        {/* Toggle Relay */}
-        <div style={styles.cmdSection}>
-          <h3 style={styles.cmdTitle}>TOGGLE RELAY</h3>
-          <div style={styles.cmdRow}>
-            <Input
-              label="RELAY #"
-              type="number"
-              min="1"
-              value={relayNumber}
-              onChange={(e) => setRelayNumber(Number(e.target.value))}
-              style={{ width: 80 }}
-            />
-            <Select
-              label="STATE"
-              value={relayState}
-              onChange={(e) => setRelayState(e.target.value)}
-              options={[{ value: 'on', label: 'ON' }, { value: 'off', label: 'OFF' }]}
-              style={{ width: 100 }}
-            />
-            <div style={{ alignSelf: 'flex-end', marginBottom: 'var(--space-4)' }}>
-              <Button size="sm" onClick={() => sendCommand('toggle_relay', { relay: relayNumber, state: relayState })}>
-                SEND
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Set Polling Interval */}
-        <div style={styles.cmdSection}>
-          <h3 style={styles.cmdTitle}>SET POLLING INTERVAL</h3>
-          <div style={styles.cmdRow}>
-            <Input
-              label="SECONDS"
-              type="number"
-              min="1"
-              value={pollingInterval}
-              onChange={(e) => setPollingInterval(Number(e.target.value))}
-              style={{ width: 100 }}
-            />
-            <div style={{ alignSelf: 'flex-end', marginBottom: 'var(--space-4)' }}>
-              <Button size="sm" onClick={() => sendCommand('set_interval', { interval_seconds: pollingInterval })}>
-                SET INTERVAL
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Immediate Reading */}
-        <div style={styles.cmdSection}>
-          <h3 style={styles.cmdTitle}>REQUEST IMMEDIATE READING</h3>
-          <Button size="sm" onClick={() => sendCommand('read_now', {})}>
-            REQUEST READING
-          </Button>
-        </div>
-
-        {/* Motor Move */}
-        <div style={styles.cmdSection}>
-          <h3 style={styles.cmdTitle}>MOTOR MOVE</h3>
-          <div style={styles.cmdRow}>
-            <Select
-              label="DIRECTION"
-              value={motorDirection}
-              onChange={(e) => setMotorDirection(e.target.value)}
-              options={[
-                { value: 'forward', label: 'FORWARD' },
-                { value: 'backward', label: 'BACKWARD' },
-                { value: 'left', label: 'LEFT' },
-                { value: 'right', label: 'RIGHT' },
-              ]}
-              style={{ width: 140 }}
-            />
-            <Input
-              label="STEPS"
-              type="number"
-              min="1"
-              value={motorSteps}
-              onChange={(e) => setMotorSteps(Number(e.target.value))}
-              style={{ width: 100 }}
-            />
-            <div style={{ alignSelf: 'flex-end', marginBottom: 'var(--space-4)' }}>
-              <Button size="sm" onClick={() => sendCommand('motor_move', { direction: motorDirection, steps: motorSteps })}>
-                MOVE
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Gripper */}
-        <div style={styles.cmdSection}>
-          <h3 style={styles.cmdTitle}>GRIPPER</h3>
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-            <Button size="sm" onClick={() => sendCommand('gripper_open', {})}>GRIPPER OPEN</Button>
-            <Button size="sm" variant="danger" onClick={() => sendCommand('gripper_close', {})}>GRIPPER CLOSE</Button>
-          </div>
-        </div>
-
-        {/* Custom Command */}
-        <div style={{ ...styles.cmdSection, borderBottom: 'none' }}>
-          <h3 style={styles.cmdTitle}>CUSTOM COMMAND</h3>
-          <Textarea
-            label="RAW JSON PAYLOAD"
-            value={customCommand}
-            onChange={(e) => setCustomCommand(e.target.value)}
-            placeholder='{"command_type": "custom", "payload": {}}'
-          />
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => {
-              try {
-                const parsed = JSON.parse(customCommand);
-                sendCommand(parsed.command_type || 'custom', parsed.payload || parsed);
-              } catch {
-                setCommandMsg({ type: 'error', text: 'INVALID JSON. CHECK YOUR INPUT.' });
-                setTimeout(() => setCommandMsg(null), 5000);
-              }
-            }}
-          >
-            SEND CUSTOM COMMAND
-          </Button>
-        </div>
-      </Card>
-
       {/* Command history */}
       <Card title="COMMAND HISTORY">
         <Table
@@ -389,6 +338,11 @@ const styles = {
   },
   metaLabel: {
     color: 'var(--color-phosphor-ghost)',
+  },
+  assignGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: 'var(--space-3)',
   },
   telemetryGrid: {
     display: 'grid',
@@ -426,25 +380,6 @@ const styles = {
     padding: 'var(--space-6)',
     color: 'var(--color-text-muted)',
     fontFamily: 'var(--font-mono)',
-  },
-  cmdSection: {
-    marginBottom: 'var(--space-4)',
-    paddingBottom: 'var(--space-4)',
-    borderBottom: '1px solid var(--color-border)',
-  },
-  cmdTitle: {
-    fontFamily: 'var(--font-mono)',
-    fontSize: 'var(--text-sm)',
-    color: 'var(--color-phosphor-dim)',
-    letterSpacing: 'var(--letter-spacing-wide)',
-    marginBottom: 'var(--space-3)',
-    fontWeight: 'normal',
-  },
-  cmdRow: {
-    display: 'flex',
-    gap: 'var(--space-3)',
-    alignItems: 'flex-start',
-    flexWrap: 'wrap',
   },
 };
 
