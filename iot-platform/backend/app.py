@@ -15,7 +15,7 @@ from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 
 import config
-from models import db, Device, Telemetry
+from models import db, Device, Telemetry, Facility, Building, Unit
 
 # Record server start time for uptime reporting
 _server_start_time = time.time()
@@ -99,12 +99,18 @@ def create_app():
         online_count = Device.query.filter_by(is_online=True).count()
         offline_count = Device.query.filter_by(is_online=False).count()
         telemetry_count = db.session.query(Telemetry.id).count()
+        facility_count = Facility.query.count()
+        building_count = Building.query.count()
+        unit_count = Unit.query.count()
         uptime_seconds = round(time.time() - _server_start_time, 2)
 
         return jsonify({
             "online_devices": online_count,
             "offline_devices": offline_count,
             "total_telemetry_records": telemetry_count,
+            "total_facilities": facility_count,
+            "total_buildings": building_count,
+            "total_units": unit_count,
             "server_uptime_seconds": uptime_seconds,
         }), 200
 
