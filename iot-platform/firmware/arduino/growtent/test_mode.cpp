@@ -1,5 +1,6 @@
 #include "test_mode.h"
 #include "storage.h"
+#include <WiFi.h>
 #include <Preferences.h>
 #include <math.h>
 
