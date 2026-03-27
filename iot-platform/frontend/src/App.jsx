@@ -17,6 +17,7 @@ import ThresholdConfig from './pages/ThresholdConfig';
 import WaterUsage from './pages/WaterUsage';
 import WiringGuide from './pages/WiringGuide';
 import SetupGuide from './pages/SetupGuide';
+import ServerHealth from './pages/ServerHealth';
 import HierarchyOverview from './pages/management/HierarchyOverview';
 import FacilityManager from './pages/management/FacilityManager';
 import BuildingManager from './pages/management/BuildingManager';
@@ -73,6 +74,7 @@ function App() {
     { to: '/manage/facilities', label: '\u229E FACILITIES' },
     { to: '/manage/buildings', label: '\u229F BUILDINGS' },
     { to: '/manage/units', label: '\u22A1 UNITS' },
+    { to: '/server-health', label: '\u2665 SERVER HEALTH' },
   ];
 
   return (
@@ -241,6 +243,7 @@ function App() {
             <Route path="/manage/facilities" element={<FacilityManager />} />
             <Route path="/manage/buildings" element={<BuildingManager />} />
             <Route path="/manage/units" element={<UnitManager />} />
+            <Route path="/server-health" element={<ServerHealth />} />
           </Routes>
         </main>
       </div>
