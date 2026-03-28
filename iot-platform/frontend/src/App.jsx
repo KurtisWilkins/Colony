@@ -24,6 +24,7 @@ import SeasonalConfigPage from './pages/irrigation/SeasonalConfig';
 import ZoneHistory from './pages/irrigation/ZoneHistory';
 import IrrigationWeather from './pages/irrigation/IrrigationWeather';
 import IrrigationWiringGuide from './pages/irrigation/IrrigationWiringGuide';
+import IrrigationWiringGuideNew from './pages/irrigation/WiringGuideNew';
 import IrrigationSetupGuide from './pages/irrigation/IrrigationSetupGuide';
 import HierarchyOverview from './pages/management/HierarchyOverview';
 import FacilityManager from './pages/management/FacilityManager';
@@ -82,7 +83,7 @@ function App() {
     { to: '/irrigation/seasonal', label: '\u25C8 SEASONAL' },
     { to: '/irrigation/history', label: '\u224B HISTORY' },
     { to: '/irrigation/weather', label: '\u2601 WEATHER' },
-    { to: '/irrigation/wiring', label: '\u26A1 WIRING GUIDE' },
+    { to: '/irrigation/wiring-guide', label: '\u22A1 WIRING GUIDE' },
     { to: '/irrigation/setup-guide', label: '\u25B6 SETUP GUIDE' },
   ];
 
@@ -299,6 +300,7 @@ function App() {
             <Route path="/irrigation/:deviceId/history" element={<ZoneHistory />} />
             <Route path="/irrigation/weather" element={<IrrigationWeather />} />
             <Route path="/irrigation/:deviceId/weather" element={<IrrigationWeather />} />
+            <Route path="/irrigation/wiring-guide" element={<IrrigationWiringGuideNew />} />
             <Route path="/irrigation/wiring" element={<IrrigationWiringGuide />} />
             <Route path="/irrigation/setup-guide" element={<IrrigationSetupGuide />} />
           </Routes>

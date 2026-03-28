@@ -355,6 +355,76 @@ def create_app():
         )
 
     # ------------------------------------------------------------------
+    # WROOM-32D irrigation firmware download
+    # ------------------------------------------------------------------
+    @app.route("/api/firmware/irrigation-wroom32d/download", methods=["GET"])
+    @login_required
+    def download_irrigation_wroom32d():
+        """Zip the WROOM-32D irrigation firmware."""
+        firmware_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "firmware-irrigation-wroom32d")
+        )
+        src_dir = os.path.join(firmware_dir, "src")
+
+        if not os.path.isdir(src_dir):
+            return jsonify({"error": "WROOM-32D firmware not found"}), 404
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for fname in sorted(os.listdir(src_dir)):
+                fpath = os.path.join(src_dir, fname)
+                if os.path.isfile(fpath):
+                    zf.write(fpath, os.path.join("firmware", "src", fname))
+            pio_ini = os.path.join(firmware_dir, "platformio.ini")
+            if os.path.isfile(pio_ini):
+                zf.write(pio_ini, os.path.join("firmware", "platformio.ini"))
+            arduino_dir = os.path.join(firmware_dir, "arduino", "irrigation")
+            if os.path.isdir(arduino_dir):
+                for fname in sorted(os.listdir(arduino_dir)):
+                    fpath = os.path.join(arduino_dir, fname)
+                    if os.path.isfile(fpath):
+                        zf.write(fpath, os.path.join("irrigation", fname))
+
+        buf.seek(0)
+        return send_file(buf, mimetype="application/zip", as_attachment=True,
+                         download_name="irrigation-wroom32d-firmware.zip")
+
+    # ------------------------------------------------------------------
+    # ESP32-S2 irrigation firmware download
+    # ------------------------------------------------------------------
+    @app.route("/api/firmware/irrigation-s2/download", methods=["GET"])
+    @login_required
+    def download_irrigation_s2():
+        """Zip the ESP32-S2 irrigation firmware."""
+        firmware_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "firmware-irrigation-s2")
+        )
+        src_dir = os.path.join(firmware_dir, "src")
+
+        if not os.path.isdir(src_dir):
+            return jsonify({"error": "ESP32-S2 firmware not found"}), 404
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for fname in sorted(os.listdir(src_dir)):
+                fpath = os.path.join(src_dir, fname)
+                if os.path.isfile(fpath):
+                    zf.write(fpath, os.path.join("firmware", "src", fname))
+            pio_ini = os.path.join(firmware_dir, "platformio.ini")
+            if os.path.isfile(pio_ini):
+                zf.write(pio_ini, os.path.join("firmware", "platformio.ini"))
+            arduino_dir = os.path.join(firmware_dir, "arduino", "irrigation_s2")
+            if os.path.isdir(arduino_dir):
+                for fname in sorted(os.listdir(arduino_dir)):
+                    fpath = os.path.join(arduino_dir, fname)
+                    if os.path.isfile(fpath):
+                        zf.write(fpath, os.path.join("irrigation_s2", fname))
+
+        buf.seek(0)
+        return send_file(buf, mimetype="application/zip", as_attachment=True,
+                         download_name="irrigation-s2-firmware.zip")
+
+    # ------------------------------------------------------------------
     # Status endpoint -- aggregate platform statistics
     # ------------------------------------------------------------------
     @app.route("/api/status", methods=["GET"])
