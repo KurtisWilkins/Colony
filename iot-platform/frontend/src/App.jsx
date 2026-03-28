@@ -345,6 +345,7 @@ const styles = {
     flexDirection: 'column',
     padding: 'var(--space-3) 0',
     flex: 1,
+    overflowY: 'auto',
   },
   navSectionHeader: {
     padding: 'var(--space-3) var(--space-4) var(--space-1)',
@@ -471,6 +472,8 @@ const styles = {
     paddingTop: '60px',
     display: 'flex',
     flexDirection: 'column',
+    overflowY: 'auto',
+    maxHeight: '100vh',
   },
   mobileNavLink: {
     display: 'block',
