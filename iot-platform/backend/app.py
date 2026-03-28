@@ -311,6 +311,50 @@ def create_app():
         )
 
     # ------------------------------------------------------------------
+    # Irrigation firmware download endpoint
+    # ------------------------------------------------------------------
+    @app.route("/api/firmware/irrigation/download", methods=["GET"])
+    @login_required
+    def download_irrigation_firmware():
+        """Zip the irrigation firmware and return as a downloadable file."""
+        firmware_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "firmware-irrigation")
+        )
+        src_dir = os.path.join(firmware_dir, "src")
+
+        if not os.path.isdir(src_dir):
+            return jsonify({"error": "Irrigation firmware directory not found"}), 404
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            # PlatformIO source files
+            for fname in sorted(os.listdir(src_dir)):
+                fpath = os.path.join(src_dir, fname)
+                if os.path.isfile(fpath):
+                    zf.write(fpath, os.path.join("firmware-irrigation", "src", fname))
+
+            # platformio.ini
+            pio_ini = os.path.join(firmware_dir, "platformio.ini")
+            if os.path.isfile(pio_ini):
+                zf.write(pio_ini, os.path.join("firmware-irrigation", "platformio.ini"))
+
+            # Arduino IDE folder
+            arduino_dir = os.path.join(firmware_dir, "arduino", "irrigation")
+            if os.path.isdir(arduino_dir):
+                for fname in sorted(os.listdir(arduino_dir)):
+                    fpath = os.path.join(arduino_dir, fname)
+                    if os.path.isfile(fpath):
+                        zf.write(fpath, os.path.join("irrigation", fname))
+
+        buf.seek(0)
+        return send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name="irrigation-firmware.zip",
+        )
+
+    # ------------------------------------------------------------------
     # Status endpoint -- aggregate platform statistics
     # ------------------------------------------------------------------
     @app.route("/api/status", methods=["GET"])
