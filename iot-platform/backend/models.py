@@ -431,3 +431,207 @@ class AutomationEvent(db.Model):
             "command_sent": self.command_sent,
             "autonomous": self.autonomous,
         }
+
+
+# ---------------------------------------------------------------------------
+# IrrigationZone model
+# ---------------------------------------------------------------------------
+class IrrigationZone(db.Model):
+    """Per-device irrigation zone configuration (up to 16 zones per device)."""
+
+    __tablename__ = "irrigation_zones"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    device_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    zone_index = db.Column(db.SmallInteger, nullable=False)
+    name = db.Column(db.String(100), nullable=False, default="")
+    enabled = db.Column(db.Boolean, nullable=False, default=True)
+    runtime_s = db.Column(db.Integer, nullable=False, default=600)
+    zone_group = db.Column(db.String(50), nullable=True)
+    gpio_pin = db.Column(db.SmallInteger, nullable=True)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("device_id", "zone_index", name="uq_irrigation_zone"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "device_id": str(self.device_id),
+            "zone_index": self.zone_index,
+            "name": self.name,
+            "enabled": self.enabled,
+            "runtime_s": self.runtime_s,
+            "zone_group": self.zone_group,
+            "gpio_pin": self.gpio_pin,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# IrrigationSchedule model
+# ---------------------------------------------------------------------------
+class IrrigationSchedule(db.Model):
+    """Per-zone watering schedule with day-of-week bitmask and time list."""
+
+    __tablename__ = "irrigation_schedules"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    device_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    zone_index = db.Column(db.SmallInteger, nullable=False)
+    enabled = db.Column(db.Boolean, nullable=False, default=True)
+    runtime_s = db.Column(db.Integer, nullable=False, default=600)
+    days_of_week = db.Column(db.SmallInteger, nullable=False, default=127)
+    times = db.Column(JSONB, nullable=False, default=list)
+    seasonal_config_index = db.Column(db.SmallInteger, nullable=True)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("device_id", "zone_index", name="uq_irrigation_schedule"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "device_id": str(self.device_id),
+            "zone_index": self.zone_index,
+            "enabled": self.enabled,
+            "runtime_s": self.runtime_s,
+            "days_of_week": self.days_of_week,
+            "times": self.times,
+            "seasonal_config_index": self.seasonal_config_index,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# IrrigationSeasonalConfig model
+# ---------------------------------------------------------------------------
+class IrrigationSeasonalConfig(db.Model):
+    """Seasonal adjustment profile (up to 8 per device)."""
+
+    __tablename__ = "irrigation_seasonal_configs"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    device_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    config_index = db.Column(db.SmallInteger, nullable=False)
+    name = db.Column(db.String(100), nullable=False, default="")
+    start_month = db.Column(db.SmallInteger, nullable=False)
+    start_day = db.Column(db.SmallInteger, nullable=False)
+    end_month = db.Column(db.SmallInteger, nullable=False)
+    end_day = db.Column(db.SmallInteger, nullable=False)
+    runtime_multiplier = db.Column(db.Float, nullable=False, default=1.0)
+    skip_if_rained = db.Column(db.Boolean, nullable=False, default=False)
+    skip_rain_threshold_mm = db.Column(db.Float, nullable=False, default=5.0)
+    enabled = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("device_id", "config_index", name="uq_irrigation_seasonal_config"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "device_id": str(self.device_id),
+            "config_index": self.config_index,
+            "name": self.name,
+            "start_month": self.start_month,
+            "start_day": self.start_day,
+            "end_month": self.end_month,
+            "end_day": self.end_day,
+            "runtime_multiplier": self.runtime_multiplier,
+            "skip_if_rained": self.skip_if_rained,
+            "skip_rain_threshold_mm": self.skip_rain_threshold_mm,
+            "enabled": self.enabled,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# IrrigationZoneEvent model
+# ---------------------------------------------------------------------------
+class IrrigationZoneEvent(db.Model):
+    """Log of irrigation zone open/close/skip events."""
+
+    __tablename__ = "irrigation_zone_events"
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    device_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    zone_index = db.Column(db.SmallInteger, nullable=False)
+    zone_name = db.Column(db.String(100), nullable=True)
+    event_type = db.Column(db.String(30), nullable=False)
+    trigger_type = db.Column(db.String(30), nullable=False)
+    runtime_s = db.Column(db.Integer, nullable=True)
+    seasonal_config = db.Column(db.String(100), nullable=True)
+    timestamp = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    test_mode = db.Column(db.Boolean, nullable=False, default=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "device_id": str(self.device_id),
+            "zone_index": self.zone_index,
+            "zone_name": self.zone_name,
+            "event_type": self.event_type,
+            "trigger_type": self.trigger_type,
+            "runtime_s": self.runtime_s,
+            "seasonal_config": self.seasonal_config,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "test_mode": self.test_mode,
+        }
+
+
+# ---------------------------------------------------------------------------
+# IrrigationWeather model
+# ---------------------------------------------------------------------------
+class IrrigationWeather(db.Model):
+    """Weather data snapshots used for irrigation skip decisions."""
+
+    __tablename__ = "irrigation_weather"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    device_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    recorded_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    rainfall_24h_mm = db.Column(db.Float, nullable=True)
+    temperature_c = db.Column(db.Float, nullable=True)
+    forecast_rain_mm = db.Column(db.Float, nullable=True)
+    weather_skip_active = db.Column(db.Boolean, nullable=False, default=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "device_id": str(self.device_id),
+            "recorded_at": self.recorded_at.isoformat() if self.recorded_at else None,
+            "rainfall_24h_mm": self.rainfall_24h_mm,
+            "temperature_c": self.temperature_c,
+            "forecast_rain_mm": self.forecast_rain_mm,
+            "weather_skip_active": self.weather_skip_active,
+        }

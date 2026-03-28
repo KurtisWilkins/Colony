@@ -90,6 +90,9 @@ def create_app():
     from routes.automation_api import automation_api_bp
     app.register_blueprint(automation_api_bp)
 
+    from routes.irrigation import irrigation_bp
+    app.register_blueprint(irrigation_bp)
+
     # ------------------------------------------------------------------
     # Health check endpoint
     # ------------------------------------------------------------------

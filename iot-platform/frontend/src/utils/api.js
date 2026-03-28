@@ -241,3 +241,82 @@ export function enableTestMode(deviceId) {
 export function disableTestMode(deviceId) {
   return request(`/api/control/${deviceId}/test_mode/off`, { method: 'POST' });
 }
+
+// ── Irrigation ───────────────────────────────────────────────────────────
+
+export function getIrrigationZones(deviceId) {
+  return request(`/api/irrigation/${deviceId}/zones`);
+}
+
+export function updateIrrigationZone(deviceId, zoneIndex, data) {
+  return request(`/api/irrigation/${deviceId}/zones/${zoneIndex}`, {
+    method: 'PUT', body: JSON.stringify(data),
+  });
+}
+
+export function openZone(deviceId, zoneIndex, runtime_s) {
+  return request(`/api/irrigation/${deviceId}/zones/${zoneIndex}/open`, {
+    method: 'POST', body: JSON.stringify({ runtime_s }),
+  });
+}
+
+export function closeZone(deviceId, zoneIndex) {
+  return request(`/api/irrigation/${deviceId}/zones/${zoneIndex}/close`, { method: 'POST' });
+}
+
+export function closeAllZones(deviceId) {
+  return request(`/api/irrigation/${deviceId}/close_all`, { method: 'POST' });
+}
+
+export function runIrrigationProgram(deviceId, zones, runtime_s) {
+  return request(`/api/irrigation/${deviceId}/run_program`, {
+    method: 'POST', body: JSON.stringify({ zones, runtime_s }),
+  });
+}
+
+export function getIrrigationSchedules(deviceId) {
+  return request(`/api/irrigation/${deviceId}/schedules`);
+}
+
+export function updateIrrigationSchedule(deviceId, zoneIndex, data) {
+  return request(`/api/irrigation/${deviceId}/schedules/${zoneIndex}`, {
+    method: 'PUT', body: JSON.stringify(data),
+  });
+}
+
+export function getSeasonalConfigs(deviceId) {
+  return request(`/api/irrigation/${deviceId}/seasonal`);
+}
+
+export function updateSeasonalConfig(deviceId, index, data) {
+  return request(`/api/irrigation/${deviceId}/seasonal/${index}`, {
+    method: 'PUT', body: JSON.stringify(data),
+  });
+}
+
+export function deleteSeasonalConfig(deviceId, index) {
+  return request(`/api/irrigation/${deviceId}/seasonal/${index}`, { method: 'DELETE' });
+}
+
+export function getIrrigationState(deviceId) {
+  return request(`/api/irrigation/${deviceId}/state`);
+}
+
+export function getZoneEvents(deviceId, params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/api/irrigation/${deviceId}/events${q ? '?' + q : ''}`);
+}
+
+export function getZoneRuntimeSummary(deviceId) {
+  return request(`/api/irrigation/${deviceId}/runtime_summary`);
+}
+
+export function pushWeatherData(deviceId, data) {
+  return request(`/api/irrigation/${deviceId}/weather`, {
+    method: 'POST', body: JSON.stringify(data),
+  });
+}
+
+export function getWeatherHistory(deviceId) {
+  return request(`/api/irrigation/${deviceId}/weather/history`);
+}

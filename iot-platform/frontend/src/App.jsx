@@ -18,6 +18,11 @@ import WaterUsage from './pages/WaterUsage';
 import WiringGuide from './pages/WiringGuide';
 import SetupGuide from './pages/SetupGuide';
 import ServerHealth from './pages/ServerHealth';
+import IrrigationDashboard from './pages/irrigation/IrrigationDashboard';
+import ZoneScheduler from './pages/irrigation/ZoneScheduler';
+import SeasonalConfigPage from './pages/irrigation/SeasonalConfig';
+import ZoneHistory from './pages/irrigation/ZoneHistory';
+import IrrigationWeather from './pages/irrigation/IrrigationWeather';
 import HierarchyOverview from './pages/management/HierarchyOverview';
 import FacilityManager from './pages/management/FacilityManager';
 import BuildingManager from './pages/management/BuildingManager';
@@ -69,6 +74,14 @@ function App() {
     { to: '/setup-guide', label: '\u25B6 SETUP GUIDE' },
   ];
 
+  const irrigationItems = [
+    { to: '/irrigation/dashboard', label: '\u224B DASHBOARD' },
+    { to: '/irrigation/scheduler', label: '\u2261 SCHEDULER' },
+    { to: '/irrigation/seasonal', label: '\u25C8 SEASONAL' },
+    { to: '/irrigation/history', label: '\u224B HISTORY' },
+    { to: '/irrigation/weather', label: '\u2601 WEATHER' },
+  ];
+
   const managementItems = [
     { to: '/manage', label: '\u25C8 OVERVIEW', end: true },
     { to: '/manage/facilities', label: '\u229E FACILITIES' },
@@ -101,6 +114,19 @@ function App() {
           ))}
           <div style={styles.navSectionHeader}>[ GROW TENT ]</div>
           {growTentItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              style={({ isActive }) => ({
+                ...styles.navLink,
+                ...(isActive ? styles.navLinkActive : {}),
+              })}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+          <div style={styles.navSectionHeader}>[ IRRIGATION ]</div>
+          {irrigationItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -189,6 +215,20 @@ function App() {
                 {item.label}
               </NavLink>
             ))}
+            <div style={styles.navSectionHeader}>[ IRRIGATION ]</div>
+            {irrigationItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                style={({ isActive }) => ({
+                  ...styles.mobileNavLink,
+                  ...(isActive ? styles.navLinkActive : {}),
+                })}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
             <div style={styles.navSectionHeader}>[ SYSTEM MANAGEMENT ]</div>
             {managementItems.map((item) => (
               <NavLink
@@ -244,6 +284,17 @@ function App() {
             <Route path="/manage/buildings" element={<BuildingManager />} />
             <Route path="/manage/units" element={<UnitManager />} />
             <Route path="/server-health" element={<ServerHealth />} />
+            {/* Irrigation pages */}
+            <Route path="/irrigation/dashboard" element={<IrrigationDashboard />} />
+            <Route path="/irrigation/:deviceId/dashboard" element={<IrrigationDashboard />} />
+            <Route path="/irrigation/scheduler" element={<ZoneScheduler />} />
+            <Route path="/irrigation/:deviceId/scheduler" element={<ZoneScheduler />} />
+            <Route path="/irrigation/seasonal" element={<SeasonalConfigPage />} />
+            <Route path="/irrigation/:deviceId/seasonal" element={<SeasonalConfigPage />} />
+            <Route path="/irrigation/history" element={<ZoneHistory />} />
+            <Route path="/irrigation/:deviceId/history" element={<ZoneHistory />} />
+            <Route path="/irrigation/weather" element={<IrrigationWeather />} />
+            <Route path="/irrigation/:deviceId/weather" element={<IrrigationWeather />} />
           </Routes>
         </main>
       </div>

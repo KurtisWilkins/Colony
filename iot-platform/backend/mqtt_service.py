@@ -70,7 +70,8 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
         # +/+/+/+ matches any four-level prefix (facility/building/unit/device)
         client.subscribe("+/+/+/+/telemetry")
         client.subscribe("+/+/+/+/status")
-        logger.info("Subscribed to +/+/+/+/telemetry and +/+/+/+/status")
+        client.subscribe("+/+/+/+/zone_event")
+        logger.info("Subscribed to +/+/+/+/telemetry, +/+/+/+/status, +/+/+/+/zone_event")
     else:
         logger.error("MQTT connection failed with reason code: %s", reason_code)
 
@@ -87,7 +88,7 @@ def on_message(client, userdata, msg):
     """
     # Import here to avoid circular imports at module load time
     from app import app
-    from models import db, Device, Telemetry
+    from models import db, Device, Telemetry, IrrigationZoneEvent
 
     parsed = parse_topic(msg.topic)
     if not parsed:
@@ -101,6 +102,8 @@ def on_message(client, userdata, msg):
             _handle_telemetry(db, Device, Telemetry, parsed, msg.payload)
         elif message_type == "status":
             _handle_status(db, Device, parsed, msg.payload)
+        elif message_type == "zone_event":
+            _handle_zone_event(db, Device, IrrigationZoneEvent, parsed, msg.payload)
         else:
             logger.debug("Ignoring message with unknown type: %s", message_type)
 
@@ -184,6 +187,54 @@ def _handle_status(db, Device, parsed, raw_payload):
     db.session.commit()
 
     logger.debug("Updated status for device %s -- marked online", device.device_name)
+
+
+def _handle_zone_event(db, Device, IrrigationZoneEvent, parsed, raw_payload):
+    """
+    Process an irrigation zone_event message.
+    Stores the event in the irrigation_zone_events table.
+    """
+    device = Device.query.filter_by(
+        facility=parsed["facility"],
+        building=parsed["building"],
+        unit=parsed["unit"],
+        device_name=parsed["device_name"],
+    ).first()
+
+    if not device:
+        logger.warning(
+            "Zone event received for unknown device: %s/%s/%s/%s",
+            parsed["facility"], parsed["building"], parsed["unit"], parsed["device_name"],
+        )
+        return
+
+    try:
+        payload_data = json.loads(raw_payload)
+    except (json.JSONDecodeError, TypeError):
+        logger.warning("Non-JSON zone_event payload from %s", parsed["device_name"])
+        return
+
+    is_test = payload_data.get("test_mode", False)
+    event = IrrigationZoneEvent(
+        device_id=device.id,
+        zone_index=payload_data.get("zone_index", 0),
+        zone_name=payload_data.get("zone_name", ""),
+        event_type=payload_data.get("event", "unknown"),
+        trigger_type=payload_data.get("trigger", "unknown"),
+        runtime_s=payload_data.get("runtime_s"),
+        seasonal_config=payload_data.get("seasonal_config"),
+        test_mode=is_test,
+    )
+    db.session.add(event)
+    db.session.commit()
+
+    logger.info(
+        "%sZone event for %s: zone %s %s",
+        "[TEST] " if is_test else "",
+        device.device_name,
+        payload_data.get("zone_name", "?"),
+        payload_data.get("event", "?"),
+    )
 
 
 # ---------------------------------------------------------------------------
