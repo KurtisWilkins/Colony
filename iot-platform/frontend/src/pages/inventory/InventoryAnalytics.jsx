@@ -187,6 +187,12 @@ function InventoryAnalytics() {
         <span style={styles.subtitle}>YIELD & PERFORMANCE METRICS</span>
       </div>
 
+      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'\uD83D\uDCCA'} Analytics show yield performance across flushes, recipes, and strains.
+        Biological efficiency (BE%) = (fresh yield {'\u00F7'} dry substrate weight) {'\u00D7'} 100.
+        A good shiitake BE% is typically 40-80%. Track these metrics to optimize your grows.
+      </p>
+
       {error && <AlertBanner variant="error" dismissible>{error}</AlertBanner>}
 
       {/* Summary stats */}

@@ -122,6 +122,11 @@ function JarDetail() {
         </Button>
       </div>
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-3)', padding: 'var(--space-2) var(--space-3)', background: 'var(--color-bg-base)', borderLeft: '2px solid var(--color-border)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'\uD83D\uDCF1'} Tap this jar's NFC tag on your phone to open quick actions.
+        You can log colonization checks, record harvests, report contamination, and move jars between locations — all from your phone.
+      </div>
+
       {actionMsg && <AlertBanner variant="success" dismissible>{actionMsg}</AlertBanner>}
       {error && <AlertBanner variant="warning" dismissible>{error}</AlertBanner>}
 

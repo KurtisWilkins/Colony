@@ -140,6 +140,11 @@ function JarList() {
         <Button onClick={() => setShowRegister(true)}>+ REGISTER JAR</Button>
       </div>
 
+      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)' }}>
+        Each jar has a unique NFC tag. Register jars here, then scan them with your phone to track their lifecycle.
+        Status: {'\uD83D\uDFE2'} available {'\u2192'} {'\uD83D\uDCE6'} in batch {'\u2192'} {'\uD83D\uDD25'} sterilizing {'\u2192'} {'\uD83D\uDC89'} inoculating {'\u2192'} {'\uD83C\uDF31'} colonizing {'\u2192'} {'\uD83C\uDF44'} fruiting {'\u2192'} {'\u2702\uFE0F'} harvesting {'\u2192'} {'\uD83D\uDCA4'} resting
+      </p>
+
       {error && (
         <AlertBanner variant="error" dismissible>
           {error}

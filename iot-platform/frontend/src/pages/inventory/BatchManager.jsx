@@ -152,6 +152,12 @@ function BatchManager() {
         <Button onClick={() => setShowCreate(true)}>+ NEW BATCH</Button>
       </div>
 
+      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        A batch groups jars that share the same recipe, strain, and preparation date.
+        Workflow: Create batch {'\u2192'} Add jars {'\u2192'} Sterilize {'\u2192'} Inoculate {'\u2192'} Track colonization {'\u2192'} Harvest.
+        Batch codes are auto-generated as YYYYMMDD-NNN.
+      </p>
+
       {error && <AlertBanner variant="error" dismissible>{error}</AlertBanner>}
 
       <div style={styles.layout}>

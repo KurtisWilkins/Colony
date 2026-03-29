@@ -72,6 +72,11 @@ function InventoryDashboard() {
         <span style={styles.subtitle}>DASHBOARD OVERVIEW</span>
       </div>
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        Track your mushroom jar inventory from inoculation to harvest. Register jars with NFC tags,
+        monitor colonization progress, and analyze yield data across batches and strains.
+      </div>
+
       {error && (
         <AlertBanner variant="error" dismissible>
           {error}
@@ -80,13 +85,13 @@ function InventoryDashboard() {
 
       {/* Status stat cards */}
       <div style={styles.statGrid}>
-        <StatCard value={statusCounts.active || s.active_jars || 0} label="ACTIVE JARS" icon={'\u2B21'} />
-        <StatCard value={statusCounts.colonizing || 0} label="COLONIZING" icon={'\u25CE'} />
-        <StatCard value={statusCounts.fruiting || 0} label="FRUITING" icon={'\u2740'} />
-        <StatCard value={statusCounts.harvesting || 0} label="HARVESTING" icon={'\u2702'} />
-        <StatCard value={statusCounts.resting || 0} label="RESTING" icon={'\u23F8'} />
-        <StatCard value={statusCounts.contaminated || 0} label="CONTAMINATED" icon={'\u26A0'} />
-        <StatCard value={statusCounts.available || 0} label="AVAILABLE" icon={'\u2713'} />
+        <StatCard value={statusCounts.active || s.active_jars || 0} label={'\uD83E\uDED9 ACTIVE JARS'} icon={'\u2B21'} />
+        <StatCard value={statusCounts.colonizing || 0} label={'\uD83C\uDF31 COLONIZING'} icon={'\u25CE'} />
+        <StatCard value={statusCounts.fruiting || 0} label={'\uD83C\uDF44 FRUITING'} icon={'\u2740'} />
+        <StatCard value={statusCounts.harvesting || 0} label={'\u2702\uFE0F HARVESTING'} icon={'\u2702'} />
+        <StatCard value={statusCounts.resting || 0} label={'\uD83D\uDCA4 RESTING'} icon={'\u23F8'} />
+        <StatCard value={statusCounts.contaminated || 0} label={'\u26A0\uFE0F CONTAMINATED'} icon={'\u26A0'} />
+        <StatCard value={statusCounts.available || 0} label={'\u2705 AVAILABLE'} icon={'\u2713'} />
       </div>
 
       {/* Yield this month */}
@@ -94,7 +99,7 @@ function InventoryDashboard() {
       <div style={styles.yieldGrid}>
         <StatCard
           value={yieldStats.total_grams ? `${yieldStats.total_grams}g` : '0g'}
-          label="TOTAL YIELD"
+          label={'\u2696\uFE0F TOTAL YIELD'}
         />
         <StatCard
           value={yieldStats.avg_per_jar ? `${yieldStats.avg_per_jar}g` : '0g'}
@@ -102,7 +107,7 @@ function InventoryDashboard() {
         />
         <StatCard
           value={yieldStats.biological_efficiency ? `${yieldStats.biological_efficiency}%` : '--%'}
-          label="BIOLOGICAL EFFICIENCY"
+          label={'\uD83D\uDCCA BIOLOGICAL EFFICIENCY'}
         />
       </div>
 
@@ -158,6 +163,24 @@ function InventoryDashboard() {
           />
         </Card>
       </div>
+
+      {(s.total_active_jars || statusCounts.active || s.active_jars || 0) === 0 && (
+        <Card title="[ GETTING STARTED ]" style={{ marginTop: 'var(--space-4)' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', color: 'var(--color-phosphor-dim)', lineHeight: 'var(--leading-relaxed)' }}>
+            <p style={{ marginBottom: 'var(--space-3)' }}>Welcome to the Mushroom Inventory System. Here's how to get started:</p>
+            <ol style={{ paddingLeft: 'var(--space-4)', margin: 0 }}>
+              <li style={{ marginBottom: 'var(--space-2)' }}><strong>Register Jars</strong> — Go to JARS and click "+ REGISTER JAR" to add your physical jars with NFC tag IDs</li>
+              <li style={{ marginBottom: 'var(--space-2)' }}><strong>Create a Recipe</strong> — Go to REFERENCE to define your substrate recipe (grain type, supplements, hydration)</li>
+              <li style={{ marginBottom: 'var(--space-2)' }}><strong>Add a Strain</strong> — Register your mushroom strain under REFERENCE (species, vendor, lot number)</li>
+              <li style={{ marginBottom: 'var(--space-2)' }}><strong>Create a Batch</strong> — Go to BATCHES to start a new batch linking your recipe, strain, and jars together</li>
+              <li style={{ marginBottom: 'var(--space-2)' }}><strong>Scan & Track</strong> — Tap NFC tags on your phone to log colonization checks, record harvests, and track movements</li>
+            </ol>
+            <p style={{ marginTop: 'var(--space-3)', color: 'var(--color-phosphor-ghost)' }}>
+              Tip: Use the bulk tag writer tool (tools/bulk-tag-writer/) to register hundreds of NFC tags quickly with an ACR122U USB reader.
+            </p>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

@@ -168,6 +168,12 @@ function LocationManager() {
         </span>
       </div>
 
+      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        Locations organize your grow space: Facility {'\u2192'} Tent {'\u2192'} Rack {'\u2192'} Shelf {'\u2192'} Position.
+        Each position holds one jar. Move jars between positions by scanning their NFC tag or using the jar detail page.
+        {'\uD83D\uDFE2'} = occupied  {'\u2B1B'} = empty  {'\uD83D\uDD34'} = contaminated
+      </p>
+
       {error && <AlertBanner variant="error" dismissible>{error}</AlertBanner>}
 
       {/* Legend */}

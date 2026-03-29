@@ -595,19 +595,20 @@ function MobileScan() {
 
       {/* Scan prompt (when no jar loaded and no active flow) */}
       {!activeFlow && !loading && !jar && (
-        <div style={mobile.scanPrompt}>
-          <span style={mobile.scanIcon}>{'\u25A3'}</span>
-          <div style={mobile.scanText}>SCAN NFC TAG</div>
-          <div style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '14px',
-            color: 'var(--color-phosphor-ghost)',
-            marginTop: 'var(--space-2)',
-            marginBottom: 'var(--space-6)',
-          }}>
-            OR ENTER TAG ID MANUALLY
-          </div>
+        <div>
+          <Card title="[ NFC JAR SCANNING ]" style={{ marginBottom: 'var(--space-4)' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-base)', color: 'var(--color-phosphor-dim)', lineHeight: 'var(--leading-relaxed)' }}>
+              <p style={{ marginBottom: 'var(--space-3)', fontSize: '18px' }}>{'\uD83D\uDCF1'} TAP YOUR JAR'S NFC TAG ON YOUR PHONE</p>
+              <p style={{ marginBottom: 'var(--space-2)', color: 'var(--color-phosphor-ghost)' }}>
+                Each jar has an NFC sticker on the bottom. Hold your phone near it to instantly view the jar's status and log actions.
+              </p>
+              <p style={{ color: 'var(--color-phosphor-ghost)', fontSize: 'var(--text-xs)' }}>
+                Or enter a tag ID manually below if NFC is not available.
+              </p>
+            </div>
+          </Card>
 
+          <div style={mobile.scanPrompt}>
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
             <Input
               value={manualTag}
@@ -631,6 +632,7 @@ function MobileScan() {
               GO
             </button>
           </div>
+        </div>
         </div>
       )}
     </div>
