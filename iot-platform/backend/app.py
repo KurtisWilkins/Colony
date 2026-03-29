@@ -101,6 +101,9 @@ def create_app():
     app.register_blueprint(users_bp)
     app.register_blueprint(device_credentials_bp)
 
+    from routes.mushroom_inventory import inventory_bp
+    app.register_blueprint(inventory_bp)
+
     # ------------------------------------------------------------------
     # Health check endpoint
     # ------------------------------------------------------------------
