@@ -11,6 +11,7 @@
 #include "automation.h"
 #include "flow_meter.h"
 #include "test_mode.h"
+#include "climate.h"
 
 // ============================================================================
 // Logging
@@ -109,6 +110,9 @@ void setup() {
     Serial.begin(115200);
     while (!Serial && millis() < 2000) { }  // Brief wait for serial
 
+    // Initialize climate relay pins FIRST (safe state before anything else)
+    climateController.begin();
+
     Serial.println();
     Serial.println("=====================================");
     Serial.println(" GROW TENT CONTROLLER v1.0.0");
@@ -132,6 +136,9 @@ void setup() {
            storage.data.building.c_str(),
            storage.data.unit.c_str(),
            storage.data.device_name.c_str());
+
+    // Load climate thresholds from NVS
+    climateController.loadFromNVS();
 
     // Load test mode state from NVS (before sensor/actuator init)
     testMode.loadFromNVS();
@@ -316,6 +323,54 @@ void loop() {
 
     // ---- Test Mode Update ----
     testMode.update();
+
+    // ---- Climate Safety Timers ----
+    climateController.update();
+
+    // ---- Climate Control (autonomous mode, priority-based) ----
+    if (automation.isAutonomous() && climateController.getThresholds().climate_enabled) {
+        float temp = sensors.readings.temperature;
+        float hum  = sensors.readings.humidity;
+        bool bme_ok = sensors.readings.bme280_ok;
+
+        // Update sensor error state for safety timers
+        climateController.setSensorError(!bme_ok);
+
+        if (bme_ok) {
+            // Priority 1: Dehumidification
+            if (hum > climateController.getThresholds().dehumid_on_pct && !climateController.getState().dehumidifier_on) {
+                climateController.setDehumidifier(true);
+                logMsg("INFO", "[CLIMATE] Auto: Dehumidifier ON (humidity %.1f%% > %.1f%%)",
+                       hum, climateController.getThresholds().dehumid_on_pct);
+            } else if (hum < climateController.getThresholds().dehumid_off_pct && climateController.getState().dehumidifier_on) {
+                climateController.setDehumidifier(false);
+                logMsg("INFO", "[CLIMATE] Auto: Dehumidifier OFF (humidity %.1f%% < %.1f%%)",
+                       hum, climateController.getThresholds().dehumid_off_pct);
+            }
+
+            // Priority 2: Heating (only if cooling is off)
+            if (temp < climateController.getActiveHeatOnC() && !climateController.getState().cooling_on && !climateController.getState().heater_on) {
+                climateController.setHeater(true);
+                logMsg("INFO", "[CLIMATE] Auto: Heater ON (temp %.1fC < %.1fC)",
+                       temp, climateController.getActiveHeatOnC());
+            } else if (temp > climateController.getActiveHeatOffC() && climateController.getState().heater_on) {
+                climateController.setHeater(false);
+                logMsg("INFO", "[CLIMATE] Auto: Heater OFF (temp %.1fC > %.1fC)",
+                       temp, climateController.getActiveHeatOffC());
+            }
+
+            // Priority 3: Cooling (only if heater is off)
+            if (temp > climateController.getActiveCoolOnC() && !climateController.getState().heater_on && !climateController.getState().cooling_on) {
+                climateController.setCooling(true);
+                logMsg("INFO", "[CLIMATE] Auto: Cooling ON (temp %.1fC > %.1fC)",
+                       temp, climateController.getActiveCoolOnC());
+            } else if (temp < climateController.getActiveCoolOffC() && climateController.getState().cooling_on) {
+                climateController.setCooling(false);
+                logMsg("INFO", "[CLIMATE] Auto: Cooling OFF (temp %.1fC < %.1fC)",
+                       temp, climateController.getActiveCoolOffC());
+            }
+        }
+    }
 
     // ---- Automation ----
     automation.update();

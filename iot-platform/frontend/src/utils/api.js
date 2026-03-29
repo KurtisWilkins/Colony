@@ -320,3 +320,46 @@ export function pushWeatherData(deviceId, data) {
 export function getWeatherHistory(deviceId) {
   return request(`/api/irrigation/${deviceId}/weather/history`);
 }
+
+// ── Climate Control ──────────────────────────────────────────────────────
+
+export function getClimateThresholds(deviceId) {
+  return request(`/api/climate/${deviceId}`);
+}
+export function updateClimateThresholds(deviceId, data) {
+  return request(`/api/climate/${deviceId}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+export function enableClimate(deviceId) {
+  return request(`/api/climate/${deviceId}/enable`, { method: 'POST' });
+}
+export function disableClimate(deviceId) {
+  return request(`/api/climate/${deviceId}/disable`, { method: 'POST' });
+}
+export function getClimateSessions(deviceId, params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/api/climate/${deviceId}/sessions${q ? '?' + q : ''}`);
+}
+export function getClimateSummary(deviceId) {
+  return request(`/api/climate/${deviceId}/summary`);
+}
+export function sendHeaterOn(deviceId) {
+  return request(`/api/control/${deviceId}/heater/on`, { method: 'POST' });
+}
+export function sendHeaterOff(deviceId) {
+  return request(`/api/control/${deviceId}/heater/off`, { method: 'POST' });
+}
+export function sendCoolingOn(deviceId) {
+  return request(`/api/control/${deviceId}/cooling/on`, { method: 'POST' });
+}
+export function sendCoolingOff(deviceId) {
+  return request(`/api/control/${deviceId}/cooling/off`, { method: 'POST' });
+}
+export function sendDehumidifierOn(deviceId) {
+  return request(`/api/control/${deviceId}/dehumidifier/on`, { method: 'POST' });
+}
+export function sendDehumidifierOff(deviceId) {
+  return request(`/api/control/${deviceId}/dehumidifier/off`, { method: 'POST' });
+}
+export function sendClimateAllOff(deviceId) {
+  return request(`/api/control/${deviceId}/climate/all_off`, { method: 'POST' });
+}

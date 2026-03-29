@@ -6,6 +6,7 @@
 #include "flow_meter.h"
 #include "automation.h"
 #include "test_mode.h"
+#include "climate.h"
 #include <ArduinoJson.h>
 
 MqttClient mqttClient;
@@ -231,6 +232,66 @@ void MqttClient::handleCommand(const char* payload) {
         // Publish status immediately to announce mode change
         publishStatus();
     }
+    else if (command == "heater_on") {
+        climateController.setHeater(true);
+        publishAck(cmd, true, "Heater on");
+    }
+    else if (command == "heater_off") {
+        climateController.setHeater(false);
+        publishAck(cmd, true, "Heater off");
+    }
+    else if (command == "cooling_on") {
+        climateController.setCooling(true);
+        publishAck(cmd, true, "Cooling on");
+    }
+    else if (command == "cooling_off") {
+        climateController.setCooling(false);
+        publishAck(cmd, true, "Cooling off");
+    }
+    else if (command == "dehumidifier_on") {
+        climateController.setDehumidifier(true);
+        publishAck(cmd, true, "Dehumidifier on");
+    }
+    else if (command == "dehumidifier_off") {
+        climateController.setDehumidifier(false);
+        publishAck(cmd, true, "Dehumidifier off");
+    }
+    else if (command == "climate_all_off") {
+        climateController.allOff();
+        publishAck(cmd, true, "All climate relays off");
+    }
+    else if (command == "set_climate_enabled") {
+        JsonObject payload = doc["payload"];
+        bool enabled = payload["enabled"] | doc["value"] | true;
+        ClimateThresholds t = climateController.getThresholds();
+        t.climate_enabled = enabled;
+        climateController.setThresholds(t);
+        climateController.saveToNVS();
+        publishAck(cmd, true, enabled ? "Climate enabled" : "Climate disabled");
+    }
+    else if (command == "update_climate_config") {
+        JsonObject payload = doc["payload"];
+        ClimateThresholds t = climateController.getThresholds();
+        if (payload.containsKey("heat_on_c"))          t.heat_on_c          = payload["heat_on_c"];
+        if (payload.containsKey("heat_off_c"))         t.heat_off_c         = payload["heat_off_c"];
+        if (payload.containsKey("cool_on_c"))          t.cool_on_c          = payload["cool_on_c"];
+        if (payload.containsKey("cool_off_c"))         t.cool_off_c         = payload["cool_off_c"];
+        if (payload.containsKey("dehumid_on_pct"))     t.dehumid_on_pct     = payload["dehumid_on_pct"];
+        if (payload.containsKey("dehumid_off_pct"))    t.dehumid_off_pct    = payload["dehumid_off_pct"];
+        if (payload.containsKey("heater_safety_min"))  t.heater_safety_min  = payload["heater_safety_min"];
+        if (payload.containsKey("cooling_safety_min")) t.cooling_safety_min = payload["cooling_safety_min"];
+        if (payload.containsKey("climate_enabled"))    t.climate_enabled    = payload["climate_enabled"];
+        if (payload.containsKey("schedule_enabled"))   t.schedule_enabled   = payload["schedule_enabled"];
+        if (payload.containsKey("day_start_hour"))     t.day_start_hour     = payload["day_start_hour"];
+        if (payload.containsKey("night_start_hour"))   t.night_start_hour   = payload["night_start_hour"];
+        if (payload.containsKey("night_heat_on_c"))    t.night_heat_on_c    = payload["night_heat_on_c"];
+        if (payload.containsKey("night_heat_off_c"))   t.night_heat_off_c   = payload["night_heat_off_c"];
+        if (payload.containsKey("night_cool_on_c"))    t.night_cool_on_c    = payload["night_cool_on_c"];
+        if (payload.containsKey("night_cool_off_c"))   t.night_cool_off_c   = payload["night_cool_off_c"];
+        climateController.setThresholds(t);
+        climateController.saveToNVS();
+        publishAck(cmd, true, "Climate config updated");
+    }
     else {
         publishAck(cmd, false, "Unknown command");
     }
@@ -267,7 +328,7 @@ void MqttClient::handleConfig(const char* payload) {
 void MqttClient::publishTelemetry() {
     if (!client.connected()) return;
 
-    StaticJsonDocument<1024> doc;
+    StaticJsonDocument<1536> doc;
 
     doc["temperature"]      = serialized(String(sensors.readings.temperature, 1));
     doc["humidity"]          = serialized(String(sensors.readings.humidity, 1));
@@ -296,8 +357,19 @@ void MqttClient::publishTelemetry() {
         doc["test_cycle_progress_pct"]   = testMode.getCycleProgressPct();
     }
 
-    char buffer[1024];
+    // Climate control fields
+    doc["heater_on"]              = climateController.getState().heater_on;
+    doc["cooling_on"]             = climateController.getState().cooling_on;
+    doc["dehumidifier_on"]        = climateController.getState().dehumidifier_on;
+    doc["climate_enabled"]        = climateController.getThresholds().climate_enabled;
+    doc["climate_mode"]           = climateController.isDaytime() ? "day" : "night";
+    doc["heater_safety_tripped"]  = climateController.getState().heater_safety_tripped;
+    doc["cooling_safety_tripped"] = climateController.getState().cooling_safety_tripped;
+    doc["sensor_error"]           = climateController.getState().sensor_error;
+
+    char buffer[1536];
     size_t len = serializeJson(doc, buffer, sizeof(buffer));
+
 
     String topic = topicFor("telemetry");
     client.publish(topic.c_str(), buffer, false);

@@ -1,5 +1,6 @@
 #include "test_mode.h"
 #include "storage.h"
+#include "climate.h"
 #include <WiFi.h>
 #include <Preferences.h>
 #include <math.h>
@@ -351,6 +352,14 @@ void TestMode::printStatus(const SimulatedReadings& r) const {
         Serial.printf("  Flow rate      : %.1f L/min | Session: %.2f L\n",
                       r.flow_rate_lpm, r.session_liters);
     }
+    Serial.printf("  Heater         : %s (virtual)\n",
+                  climateController.getState().heater_on ? "ON" : "OFF");
+    Serial.printf("  Cooling        : %s (virtual)\n",
+                  climateController.getState().cooling_on ? "ON" : "OFF");
+    Serial.printf("  Dehumidifier   : %s (virtual)\n",
+                  climateController.getState().dehumidifier_on ? "ON" : "OFF");
+    Serial.printf("  Climate mode   : %s\n",
+                  climateController.isDaytime() ? "DAY" : "NIGHT");
     Serial.printf("  Publishing to  : %s/%s/%s/%s/telemetry\n",
                   storage.data.facility.c_str(),
                   storage.data.building.c_str(),

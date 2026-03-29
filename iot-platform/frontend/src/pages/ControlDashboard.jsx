@@ -32,6 +32,13 @@ import {
   getAutomationEvents,
   enableTestMode,
   disableTestMode,
+  sendHeaterOn,
+  sendHeaterOff,
+  sendCoolingOn,
+  sendCoolingOff,
+  sendDehumidifierOn,
+  sendDehumidifierOff,
+  sendClimateAllOff,
 } from '../utils/api';
 import { terminalChartTheme, terminalLineDataset } from '../styles/chartTheme';
 
@@ -315,6 +322,15 @@ function ControlDashboard() {
   const testCycleProgress = p.test_cycle_progress_pct ?? 0;
   const testGaugeColor = isTestMode ? 'var(--color-amber)' : undefined;
 
+  // Climate state
+  const heaterOn = p.heater_on ?? false;
+  const coolingOn = p.cooling_on ?? false;
+  const dehumidOn = p.dehumidifier_on ?? false;
+  const climateEnabled = p.climate_enabled ?? true;
+  const climateMode = p.climate_mode ?? 'day';
+  const heaterSafetyTripped = p.heater_safety_tripped ?? false;
+  const coolingSafetyTripped = p.cooling_safety_tripped ?? false;
+
   // ── Sparkline chart ────────────────────────────────────────────────
 
   const sortedTelemetry = [...telemetryData].sort(
@@ -548,6 +564,9 @@ function ControlDashboard() {
               inactiveLabel="CLOSED"
               activeColor="amber"
             />
+            <ActuatorIndicator label="HEATER" active={heaterOn} activeColor="amber" />
+            <ActuatorIndicator label="COOLING" active={coolingOn} />
+            <ActuatorIndicator label="DEHUMID" active={dehumidOn} />
           </div>
 
           {/* Sparkline chart */}
@@ -717,6 +736,88 @@ function ControlDashboard() {
             )}
           </div>
         </div>
+      </Card>
+
+      {/* ═══ CLIMATE CONTROL ═══ */}
+      <Card title="[ CLIMATE CONTROL ]" style={{ marginBottom: 'var(--space-4)' }}>
+        {(heaterSafetyTripped || coolingSafetyTripped) && (
+          <AlertBanner variant="error">
+            SAFETY CUTOFF TRIGGERED — Check sensor wiring.
+            {heaterSafetyTripped ? ' Heater was cut off.' : ''}
+            {coolingSafetyTripped ? ' Cooling was cut off.' : ''}
+          </AlertBanner>
+        )}
+        <div style={{ marginBottom: 'var(--space-3)' }}>
+          <Badge variant={climateMode === 'day' ? 'online' : 'warning'}>
+            {climateMode === 'day' ? 'DAY MODE' : 'NIGHT MODE'}
+          </Badge>
+          <Badge variant={climateEnabled ? 'online' : 'offline'} style={{ marginLeft: 'var(--space-2)' }}>
+            {climateEnabled ? 'AUTOMATION ON' : 'AUTOMATION OFF'}
+          </Badge>
+        </div>
+
+        <div style={styles.controlGrid}>
+          {/* Heater */}
+          <div style={styles.controlGroup}>
+            <h3 style={styles.controlLabel}>[ HEATER ]</h3>
+            <ActuatorIndicator label="HEATER" active={heaterOn} activeColor="amber" />
+            <div style={styles.controlBtnRow}>
+              <Button size="sm" variant={coolingOn ? 'secondary' : 'primary'}
+                disabled={btnDisabled('heaterOn') || coolingOn}
+                loading={btnLoading('heaterOn')}
+                onClick={withCooldown('heaterOn', () => sendHeaterOn(deviceId))}>
+                {btnLabel('heaterOn', 'ON')}
+              </Button>
+              <Button size="sm" variant="secondary"
+                disabled={btnDisabled('heaterOff')} loading={btnLoading('heaterOff')}
+                onClick={withCooldown('heaterOff', () => sendHeaterOff(deviceId))}>
+                {btnLabel('heaterOff', 'OFF')}
+              </Button>
+            </div>
+          </div>
+
+          {/* Cooling */}
+          <div style={styles.controlGroup}>
+            <h3 style={styles.controlLabel}>[ COOLING ]</h3>
+            <ActuatorIndicator label="COOLING" active={coolingOn} activeColor="cyan" />
+            <div style={styles.controlBtnRow}>
+              <Button size="sm" variant={heaterOn ? 'secondary' : 'primary'}
+                disabled={btnDisabled('coolingOn') || heaterOn}
+                loading={btnLoading('coolingOn')}
+                onClick={withCooldown('coolingOn', () => sendCoolingOn(deviceId))}>
+                {btnLabel('coolingOn', 'ON')}
+              </Button>
+              <Button size="sm" variant="secondary"
+                disabled={btnDisabled('coolingOff')} loading={btnLoading('coolingOff')}
+                onClick={withCooldown('coolingOff', () => sendCoolingOff(deviceId))}>
+                {btnLabel('coolingOff', 'OFF')}
+              </Button>
+            </div>
+          </div>
+
+          {/* Dehumidifier */}
+          <div style={styles.controlGroup}>
+            <h3 style={styles.controlLabel}>[ DEHUMIDIFIER ]</h3>
+            <ActuatorIndicator label="DEHUMID" active={dehumidOn} />
+            <div style={styles.controlBtnRow}>
+              <Button size="sm" disabled={btnDisabled('dehumidOn')} loading={btnLoading('dehumidOn')}
+                onClick={withCooldown('dehumidOn', () => sendDehumidifierOn(deviceId))}>
+                {btnLabel('dehumidOn', 'ON')}
+              </Button>
+              <Button size="sm" variant="secondary"
+                disabled={btnDisabled('dehumidOff')} loading={btnLoading('dehumidOff')}
+                onClick={withCooldown('dehumidOff', () => sendDehumidifierOff(deviceId))}>
+                {btnLabel('dehumidOff', 'OFF')}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <Button variant="danger" style={{ width: '100%', marginTop: 'var(--space-3)' }}
+          disabled={btnDisabled('climateOff')} loading={btnLoading('climateOff')}
+          onClick={withConfirm('climateOff', () => sendClimateAllOff(deviceId))}>
+          {btnLabel('climateOff', 'ALL CLIMATE OFF')}
+        </Button>
       </Card>
 
       {/* ═══ TEST MODE CARD ═══ */}

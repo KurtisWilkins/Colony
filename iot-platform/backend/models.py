@@ -669,3 +669,46 @@ class IrrigationWeather(db.Model):
             "forecast_rain_mm": self.forecast_rain_mm,
             "weather_skip_active": self.weather_skip_active,
         }
+
+
+# ---------------------------------------------------------------------------
+# ClimateRuntimeSession model
+# ---------------------------------------------------------------------------
+class ClimateRuntimeSession(db.Model):
+    """Tracks individual climate control runtime sessions (heater, cooling, dehumidifier)."""
+
+    __tablename__ = "climate_runtime_sessions"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    device_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    device_type = db.Column(db.String(20), nullable=False)
+    session_start = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    session_end = db.Column(db.DateTime, nullable=True)
+    duration_s = db.Column(db.Integer, nullable=True)
+    trigger_type = db.Column(db.String(20), nullable=False, default="auto")
+    temp_at_start = db.Column(db.Float, nullable=True)
+    temp_at_end = db.Column(db.Float, nullable=True)
+    humidity_at_start = db.Column(db.Float, nullable=True)
+    safety_cutoff = db.Column(db.Boolean, default=False)
+    test_mode = db.Column(db.Boolean, default=False)
+
+    def to_dict(self):
+        """Serialise the climate runtime session to a dictionary."""
+        return {
+            "id": self.id,
+            "device_id": str(self.device_id),
+            "device_type": self.device_type,
+            "session_start": self.session_start.isoformat() if self.session_start else None,
+            "session_end": self.session_end.isoformat() if self.session_end else None,
+            "duration_s": self.duration_s,
+            "trigger_type": self.trigger_type,
+            "temp_at_start": self.temp_at_start,
+            "temp_at_end": self.temp_at_end,
+            "humidity_at_start": self.humidity_at_start,
+            "safety_cutoff": self.safety_cutoff,
+            "test_mode": self.test_mode,
+        }

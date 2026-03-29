@@ -18,6 +18,8 @@ import WaterUsage from './pages/WaterUsage';
 import WiringGuide from './pages/WiringGuide';
 import SetupGuide from './pages/SetupGuide';
 import ServerHealth from './pages/ServerHealth';
+import ClimateThresholds from './pages/ClimateThresholds';
+import ClimateHistory from './pages/ClimateHistory';
 import IrrigationDashboard from './pages/irrigation/IrrigationDashboard';
 import ZoneScheduler from './pages/irrigation/ZoneScheduler';
 import SeasonalConfigPage from './pages/irrigation/SeasonalConfig';
@@ -75,6 +77,8 @@ function App() {
     { to: '/water', label: '\u224B WATER USAGE' },
     { to: '/wiring', label: '\u26A1 WIRING GUIDE' },
     { to: '/setup-guide', label: '\u25B6 SETUP GUIDE' },
+    { to: '/devices/climate', label: '\u2103 CLIMATE' },
+    { to: '/devices/climate-history', label: '\u2103 CLIMATE HISTORY' },
   ];
 
   const irrigationItems = [
@@ -271,6 +275,10 @@ function App() {
             <Route path="/devices/:deviceId/control" element={<ControlDashboard />} />
             <Route path="/devices/:deviceId/thresholds" element={<ThresholdConfig />} />
             <Route path="/devices/:deviceId/water" element={<WaterUsage />} />
+            <Route path="/devices/climate" element={<ClimateThresholds />} />
+            <Route path="/devices/:deviceId/climate" element={<ClimateThresholds />} />
+            <Route path="/devices/climate-history" element={<ClimateHistory />} />
+            <Route path="/devices/:deviceId/climate-history" element={<ClimateHistory />} />
             {/* Hierarchy browsing */}
             <Route path="/devices" element={<HierarchyView />} />
             <Route path="/devices/:facility" element={<BuildingList />} />
