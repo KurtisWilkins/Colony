@@ -335,6 +335,24 @@ class DeviceThreshold(db.Model):
     created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
 
+    # Climate control columns
+    heat_on_c = db.Column(db.Float, default=17.5)
+    heat_off_c = db.Column(db.Float, default=19.0)
+    cool_on_c = db.Column(db.Float, default=25.0)
+    cool_off_c = db.Column(db.Float, default=23.5)
+    dehumid_on_pct = db.Column(db.Float, default=92.0)
+    dehumid_off_pct = db.Column(db.Float, default=88.0)
+    heater_safety_min = db.Column(db.Integer, default=30)
+    cooling_safety_min = db.Column(db.Integer, default=60)
+    climate_enabled = db.Column(db.Boolean, default=True)
+    schedule_enabled = db.Column(db.Boolean, default=False)
+    day_start_hour = db.Column(db.Integer, default=6)
+    night_start_hour = db.Column(db.Integer, default=22)
+    night_heat_on_c = db.Column(db.Float, default=16.0)
+    night_heat_off_c = db.Column(db.Float, default=18.0)
+    night_cool_on_c = db.Column(db.Float, default=24.0)
+    night_cool_off_c = db.Column(db.Float, default=22.5)
+
     def to_dict(self):
         """Serialise the threshold record to a dictionary."""
         return {
@@ -352,6 +370,22 @@ class DeviceThreshold(db.Model):
             "fan_co2_speed": self.fan_co2_speed,
             "sensor_interval_s": self.sensor_interval_s,
             "valve_safety_min": self.valve_safety_min,
+            "heat_on_c": self.heat_on_c,
+            "heat_off_c": self.heat_off_c,
+            "cool_on_c": self.cool_on_c,
+            "cool_off_c": self.cool_off_c,
+            "dehumid_on_pct": self.dehumid_on_pct,
+            "dehumid_off_pct": self.dehumid_off_pct,
+            "heater_safety_min": self.heater_safety_min,
+            "cooling_safety_min": self.cooling_safety_min,
+            "climate_enabled": self.climate_enabled,
+            "schedule_enabled": self.schedule_enabled,
+            "day_start_hour": self.day_start_hour,
+            "night_start_hour": self.night_start_hour,
+            "night_heat_on_c": self.night_heat_on_c,
+            "night_heat_off_c": self.night_heat_off_c,
+            "night_cool_on_c": self.night_cool_on_c,
+            "night_cool_off_c": self.night_cool_off_c,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

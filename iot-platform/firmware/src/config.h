@@ -118,4 +118,31 @@
 // ============================================================================
 #define NVS_NAMESPACE           "growtent"
 
+// ============================================================================
+// Climate Control Pins (second relay module — ACTIVE LOW)
+// ============================================================================
+#define RELAY_HEATER_PIN      13
+#define RELAY_COOLING_PIN     12
+#define RELAY_DEHUMID_PIN     14
+#define RELAY_SPARE2_PIN      23
+
+// ============================================================================
+// Climate Thresholds Defaults
+// ============================================================================
+#define DEFAULT_HEAT_ON_C         17.5f
+#define DEFAULT_HEAT_OFF_C        19.0f
+#define DEFAULT_COOL_ON_C         25.0f
+#define DEFAULT_COOL_OFF_C        23.5f
+#define DEFAULT_DEHUMID_ON_PCT    92.0f
+#define DEFAULT_DEHUMID_OFF_PCT   88.0f
+#define DEFAULT_HEATER_SAFETY_MIN  30
+#define DEFAULT_COOLING_SAFETY_MIN 60
+#define DEFAULT_DAY_START_HOUR    6
+#define DEFAULT_NIGHT_START_HOUR  22
+#define DEFAULT_NIGHT_HEAT_ON_C   16.0f
+#define DEFAULT_NIGHT_HEAT_OFF_C  18.0f
+#define DEFAULT_NIGHT_COOL_ON_C   24.0f
+#define DEFAULT_NIGHT_COOL_OFF_C  22.5f
+#define DEFAULT_CLIMATE_ENABLED   true
+
 #endif // CONFIG_H
