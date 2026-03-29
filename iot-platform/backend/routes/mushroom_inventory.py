@@ -60,6 +60,55 @@ def create_jar():
     return jsonify(jar.to_dict()), 201
 
 
+@inventory_bp.route("/api/inventory/jars/bulk-register", methods=["POST"])
+@login_required
+def bulk_register_jars():
+    """Register multiple jars in one API call. Max 500 per request."""
+    data = request.get_json(silent=True) or {}
+    tags = data.get("tags", [])
+    jar_defaults = data.get("jar_defaults", {})
+    if len(tags) > 500:
+        return jsonify({"error": "Maximum 500 tags per request"}), 400
+
+    registered = []
+    skipped = []
+    errors = []
+
+    for tag_data in tags:
+        tag_id = (tag_data.get("tag_id") or "").strip()
+        if not tag_id:
+            errors.append({"tag_id": "", "error": "Empty tag_id"})
+            continue
+        existing = Jar.query.filter_by(tag_id=tag_id).first()
+        if existing:
+            skipped.append({"tag_id": tag_id, "reason": "already_registered",
+                            "jar_id": str(existing.id)})
+            continue
+        try:
+            jar = Jar(
+                tag_id=tag_id,
+                tag_type=tag_data.get("tag_type", jar_defaults.get("tag_type", "nfc")),
+                jar_size_ml=tag_data.get("jar_size_ml", jar_defaults.get("jar_size_ml", 1000)),
+                jar_material=tag_data.get("jar_material", jar_defaults.get("jar_material", "glass")),
+                lid_type=tag_data.get("lid_type", jar_defaults.get("lid_type")),
+            )
+            db.session.add(jar)
+            db.session.flush()
+            registered.append({"tag_id": tag_id, "jar_id": str(jar.id)})
+        except Exception as e:
+            errors.append({"tag_id": tag_id, "error": str(e)})
+
+    db.session.commit()
+    return jsonify({
+        "registered": registered,
+        "skipped": skipped,
+        "errors": errors,
+        "total_registered": len(registered),
+        "total_skipped": len(skipped),
+        "total_errors": len(errors),
+    }), 201
+
+
 @inventory_bp.route("/api/inventory/jars", methods=["GET"])
 @login_required
 def list_jars():
