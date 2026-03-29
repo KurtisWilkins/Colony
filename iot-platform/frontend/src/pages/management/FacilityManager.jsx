@@ -211,6 +211,9 @@ function FacilityManager() {
         ) : (
           <Card>
             <div style={styles.placeholder}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)', textAlign: 'left' }}>
+                Facilities are the top level of your location hierarchy. Create facilities to organize your buildings, units, and devices. Example: "Basement Lab", "Greenhouse", "Outdoor Garden".
+              </div>
               Select a facility or create a new one
             </div>
           </Card>

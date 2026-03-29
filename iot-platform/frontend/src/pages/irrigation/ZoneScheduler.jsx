@@ -215,6 +215,10 @@ function ZoneScheduler() {
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
       <DeviceSelector value={deviceId} onSelect={(id) => navigate(`/devices/${id}/irrigation/schedules`)} />
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'📅'} Set watering schedules for each zone. Each zone supports up to 4 run times per day with day-of-week selection. Seasonal configs can override runtime durations based on date ranges and weather conditions.
+      </div>
+
       <div style={styles.twoPanel}>
         {/* ═══ LEFT PANEL: ZONE LIST ═══ */}
         <div style={styles.leftPanel}>

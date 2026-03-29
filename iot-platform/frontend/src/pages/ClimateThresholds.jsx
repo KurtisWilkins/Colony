@@ -219,6 +219,10 @@ function ClimateThresholds() {
 
       <h1 style={styles.pageTitle}>CLIMATE CONTROL</h1>
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        Configure temperature and humidity thresholds for automatic climate control. The heater and cooling unit are mutually exclusive — they will never run simultaneously. Day/night scheduling adjusts thresholds based on time of day.
+      </div>
+
       {error && <AlertBanner variant="error">{error}</AlertBanner>}
       {success && <AlertBanner variant="success">{success}</AlertBanner>}
 

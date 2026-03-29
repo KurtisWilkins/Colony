@@ -245,6 +245,10 @@ function WiringGuide() {
       <h1 style={styles.title}>WIRING GUIDE</h1>
       <div style={styles.subtitle}>Mushroom Tent Controller — ESP32-WROOM-32D</div>
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'⚡'} Complete wiring reference for the ESP32 grow tent controller. Follow these diagrams to connect sensors, actuators, and relay modules. Download the firmware from the code viewer section below.
+      </div>
+
       {/* Wire color legend */}
       <div style={styles.legend}>
         <div style={styles.legendItem('#ff3131')}>

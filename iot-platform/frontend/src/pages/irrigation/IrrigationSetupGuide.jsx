@@ -313,6 +313,9 @@ function IrrigationSetupGuide() {
         <p style={pageStyles.subtitle}>
           REGISTER A NEW 16-ZONE IRRIGATION CONTROLLER TO THE NETWORK
         </p>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+          Follow these 12 steps to register a new irrigation controller. The guide covers hardware assembly, firmware flashing, WiFi setup, zone naming, schedule creation, and first real run with leak checking.
+        </div>
         <div style={pageStyles.progress}>
           <Badge variant={completedCount === totalSteps ? 'online' : 'warning'}>
             {completedCount} / {totalSteps} STEPS COMPLETE

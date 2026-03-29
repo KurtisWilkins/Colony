@@ -173,6 +173,10 @@ function ZoneHistory() {
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
       <DeviceSelector value={deviceId} onSelect={(id) => navigate(`/devices/${id}/irrigation/history`)} />
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'📊'} Review zone activation history, runtime totals, and watering patterns. Filter by zone, trigger type, and date range to analyze irrigation efficiency.
+      </div>
+
       {/* ═══ SUMMARY STATS ═══ */}
       <div style={styles.statsRow}>
         <StatCard value={formatMinutes(todayMin)} label="Today" />

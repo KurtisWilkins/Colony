@@ -298,6 +298,10 @@ function IrrigationWiringGuideNew() {
         />
       </div>
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'⚡'} Select your board above to see the correct wiring diagram and pin mapping. Both boards use the same SainSmart 16-channel relay module — only the GPIO pin numbers differ.
+      </div>
+
       {/* Section 1: Board Overview */}
       <CollapsibleSection id="overview" title="BOARD OVERVIEW" open={openSections.overview} onToggle={toggleSection}>
         <Card title={`BOARD OVERVIEW — ${chipLabel}`}>

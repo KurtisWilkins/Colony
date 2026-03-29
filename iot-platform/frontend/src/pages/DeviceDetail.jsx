@@ -211,6 +211,10 @@ function DeviceDetail() {
         </div>
       </Card>
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'📱'} View device telemetry, assign to hierarchy, and access control dashboard. Use the CONTROL DASHBOARD button for real-time monitoring and manual controls.
+      </div>
+
       {/* Device Assignment */}
       <Card title="ASSIGN TO HIERARCHY" style={{ marginBottom: 'var(--space-4)' }}>
         {commandMsg && (

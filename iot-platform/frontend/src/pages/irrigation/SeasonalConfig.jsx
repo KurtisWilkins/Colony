@@ -157,6 +157,10 @@ function SeasonalConfig() {
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
       <DeviceSelector value={deviceId} onSelect={(id) => navigate(`/devices/${id}/irrigation/seasonal`)} />
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'🌿'} Seasonal configurations adjust watering runtime based on time of year and rainfall. Create profiles like "Spring Rains" (50% runtime) or "Summer Heat" (150% runtime). Assign them to zones in the Scheduler.
+      </div>
+
       <div style={styles.twoPanel}>
         {/* ═══ LEFT PANEL: CONFIG SLOTS ═══ */}
         <div style={styles.leftPanel}>

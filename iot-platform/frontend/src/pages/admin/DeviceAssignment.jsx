@@ -112,6 +112,10 @@ function DeviceAssignment() {
       <h1 style={styles.pageTitle}>DEVICE ASSIGNMENT</h1>
       <div style={styles.pageSub}>ASSIGN DEVICES TO USERS</div>
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'🔗'} Assign devices to users for role-based access control. Operators and viewers can only see and interact with devices assigned to their account. Admins and managers have access to all devices.
+      </div>
+
       {error && <AlertBanner variant="error">{error}</AlertBanner>}
       {success && <AlertBanner variant="success">{success}</AlertBanner>}
 

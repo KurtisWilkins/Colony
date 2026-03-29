@@ -284,6 +284,10 @@ function IrrigationDashboard() {
         onSelect={(id) => navigate(`/devices/${id}/irrigation`)}
       />
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'🌊'} Monitor and control your 16-zone irrigation system. Each zone controls one solenoid valve. Zones run sequentially by default — only one valve opens at a time. Use RUN PROGRAM to queue multiple zones.
+      </div>
+
       {/* ═══ STATUS BAR ═══ */}
       <div style={styles.statusBar}>
         <div style={styles.statusLeft}>

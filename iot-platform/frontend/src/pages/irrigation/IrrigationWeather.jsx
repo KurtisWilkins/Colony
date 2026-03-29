@@ -155,6 +155,10 @@ function IrrigationWeather() {
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
       <DeviceSelector value={deviceId} onSelect={(id) => navigate(`/devices/${id}/irrigation/weather`)} />
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'☁️'} Weather integration automatically skips watering when rainfall exceeds your threshold. Configure rain thresholds and device location for automatic weather data from Open-Meteo (free, no API key needed).
+      </div>
+
       {/* Skip banner */}
       {skipActive && (
         <AlertBanner variant="warning">

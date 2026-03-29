@@ -65,6 +65,9 @@ function ServerHealth() {
             LAST UPDATE: {lastUpdate.toLocaleTimeString('en-US', { hour12: false })}
           </p>
         )}
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+          Real-time system metrics for the Raspberry Pi server. All values auto-refresh every 10 seconds. The health guidelines section flags potential issues with actionable recommendations.
+        </div>
       </div>
 
       {error && <AlertBanner variant="error">HEALTH CHECK FAILED: {error}</AlertBanner>}

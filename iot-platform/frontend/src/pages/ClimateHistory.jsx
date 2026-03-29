@@ -182,6 +182,10 @@ function ClimateHistory() {
 
       <h1 style={styles.pageTitle}>CLIMATE HISTORY</h1>
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'📊'} Review climate device runtime and activation history. Track heater, cooling, and dehumidifier usage to optimize energy consumption and growing conditions.
+      </div>
+
       {error && <AlertBanner variant="error">{error}</AlertBanner>}
 
       {/* ═══ SUMMARY STATS ═══ */}

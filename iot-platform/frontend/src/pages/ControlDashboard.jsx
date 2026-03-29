@@ -450,6 +450,10 @@ function ControlDashboard() {
         onSelect={(id) => navigate(`/devices/${id}/control`)}
       />
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        Monitor and control your grow tent environment in real-time. Temperature, humidity, CO2, and tank levels update every 10 seconds. Manual controls override automation rules until the next cycle.
+      </div>
+
       {/* ═══ SECTION 1: DEVICE STATUS BAR ═══ */}
       <div style={styles.statusBar}>
         <div style={styles.statusLeft}>

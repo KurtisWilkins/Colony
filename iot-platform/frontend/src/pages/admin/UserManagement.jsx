@@ -203,6 +203,10 @@ function UserManagement() {
         </Button>
       </div>
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'👤'} Manage user accounts and roles. Roles: Admin (full access), Manager (all devices), Operator (assigned devices, control only), Viewer (read-only). New users receive a temporary password and must change it on first login.
+      </div>
+
       {error && <AlertBanner variant="error">{error}</AlertBanner>}
       {success && <AlertBanner variant="success">{success}</AlertBanner>}
 

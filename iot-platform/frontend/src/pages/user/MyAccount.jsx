@@ -130,6 +130,10 @@ function MyAccount() {
       <h1 style={styles.pageTitle}>MY ACCOUNT</h1>
       <div style={styles.pageSub}>ACCOUNT SETTINGS & SECURITY</div>
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'👤'} View your account details and change your password. Passwords must be at least 12 characters with at least one number and one special character.
+      </div>
+
       {/* Account Info */}
       <Card style={{ marginBottom: 'var(--space-6)' }}>
         <div style={styles.sectionHeader}>ACCOUNT INFORMATION</div>

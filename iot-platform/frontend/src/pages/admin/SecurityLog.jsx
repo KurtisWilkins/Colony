@@ -149,6 +149,10 @@ function SecurityLog() {
       <h1 style={styles.pageTitle}>SECURITY LOG</h1>
       <div style={styles.pageSub}>AUTHENTICATION & ACCESS EVENTS // AUTO-REFRESH 30S</div>
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'🔒'} Security audit trail showing all login attempts, access denials, credential rotations, and MQTT authentication events. Use filters to investigate specific users or event types.
+      </div>
+
       {error && <AlertBanner variant="error">{error}</AlertBanner>}
 
       {/* Stats */}

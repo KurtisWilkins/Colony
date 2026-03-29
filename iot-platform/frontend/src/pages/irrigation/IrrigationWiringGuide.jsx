@@ -293,6 +293,10 @@ function IrrigationWiringGuide() {
       <h1 style={styles.title}>IRRIGATION WIRING GUIDE</h1>
       <div style={styles.subtitle}>16-Zone Irrigation Controller — ESP32-WROOM-32D</div>
 
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'⚡'} Wiring reference for the 16-zone irrigation controller. Follow these diagrams to connect the SainSmart relay module to solenoid valves. ACTIVE LOW logic — all pins boot HIGH to prevent valves opening on startup.
+      </div>
+
       {/* Wire color legend */}
       <div style={styles.legend}>
         <div style={styles.legendItem('#ff3131')}>
