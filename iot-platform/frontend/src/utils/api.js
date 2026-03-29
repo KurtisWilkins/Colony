@@ -411,3 +411,62 @@ export function changePassword(currentPassword, newPassword) {
     method: 'POST', body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
   });
 }
+
+// ── Mushroom Inventory ───────────────────────────────────────────────────
+
+export function getJars(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/api/inventory/jars${q ? '?' + q : ''}`);
+}
+export function getJar(jarId) { return request(`/api/inventory/jars/${jarId}`); }
+export function getJarByTag(tagId) { return request(`/api/inventory/jars/by-tag/${tagId}`); }
+export function createJar(data) {
+  return request('/api/inventory/jars', { method: 'POST', body: JSON.stringify(data) });
+}
+export function updateJar(jarId, data) {
+  return request(`/api/inventory/jars/${jarId}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+export function retireJar(jarId, data) {
+  return request(`/api/inventory/jars/${jarId}/retire`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function getBatches(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/api/inventory/batches${q ? '?' + q : ''}`);
+}
+export function getBatch(batchId) { return request(`/api/inventory/batches/${batchId}`); }
+export function createBatch(data) {
+  return request('/api/inventory/batches', { method: 'POST', body: JSON.stringify(data) });
+}
+export function addJarsToBatch(batchId, data) {
+  return request(`/api/inventory/batches/${batchId}/jars`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function logColonizationCheck(jarId, data) {
+  return request(`/api/inventory/jars/${jarId}/colonization-check`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function getColonizationHistory(jarId) {
+  return request(`/api/inventory/jars/${jarId}/colonization-history`);
+}
+export function reportContamination(jarId, data) {
+  return request(`/api/inventory/jars/${jarId}/contamination`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function moveJar(jarId, data) {
+  return request(`/api/inventory/jars/${jarId}/move`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function startFlush(jarId, data) {
+  return request(`/api/inventory/jars/${jarId}/flushes`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function recordHarvest(flushId, data) {
+  return request(`/api/inventory/flushes/${flushId}/harvest`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function scanTag(data) {
+  return request('/api/inventory/scan', { method: 'POST', body: JSON.stringify(data) });
+}
+export function getInventoryLocations() { return request('/api/inventory/locations'); }
+export function getStrains() { return request('/api/inventory/strains'); }
+export function getRecipes() { return request('/api/inventory/recipes'); }
+export function getInventorySummary() { return request('/api/inventory/analytics/dashboard-summary'); }
+export function getYieldByFlush(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/api/inventory/analytics/yield-by-flush${q ? '?' + q : ''}`);
+}
+export function getContaminationRate() { return request('/api/inventory/analytics/contamination-rate'); }
