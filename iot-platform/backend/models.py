@@ -856,3 +856,763 @@ class SecurityEvent(db.Model):
             "ip_address": self.ip_address,
             "details": self.details,
         }
+
+
+# ===========================================================================
+# Mushroom Inventory Models
+# ===========================================================================
+
+
+class MushroomStrain(db.Model):
+    """Mushroom species / cultivar catalogue entry."""
+
+    __tablename__ = "mushroom_strains"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = db.Column(db.String(150), nullable=False, unique=True)
+    species = db.Column(db.String(150))
+    source = db.Column(db.String(200))
+    generation = db.Column(db.String(50))
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "name": self.name,
+            "species": self.species,
+            "source": self.source,
+            "generation": self.generation,
+            "notes": self.notes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class SubstrateRecipe(db.Model):
+    """Named substrate formulation."""
+
+    __tablename__ = "substrate_recipes"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = db.Column(db.String(150), nullable=False, unique=True)
+    description = db.Column(db.Text)
+    target_moisture_pct = db.Column(db.Float)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    components = db.relationship(
+        "SubstrateRecipeComponent", backref="recipe", cascade="all, delete-orphan"
+    )
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "name": self.name,
+            "description": self.description,
+            "target_moisture_pct": self.target_moisture_pct,
+            "components": [c.to_dict() for c in self.components] if self.components else [],
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class SubstrateRecipeComponent(db.Model):
+    """Ingredient within a substrate recipe."""
+
+    __tablename__ = "substrate_recipe_components"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    recipe_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("substrate_recipes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    ingredient = db.Column(db.String(150), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.String(30), nullable=False, default="g")
+    sort_order = db.Column(db.SmallInteger, nullable=False, default=0)
+
+    __table_args__ = (
+        UniqueConstraint("recipe_id", "ingredient", name="uq_recipe_ingredient"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "recipe_id": str(self.recipe_id),
+            "ingredient": self.ingredient,
+            "quantity": self.quantity,
+            "unit": self.unit,
+            "sort_order": self.sort_order,
+        }
+
+
+class AutoclaveUnit(db.Model):
+    """Registered sterilisation equipment."""
+
+    __tablename__ = "autoclave_units"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    model = db.Column(db.String(150))
+    capacity_liters = db.Column(db.Float)
+    device_id = db.Column(UUID(as_uuid=True), db.ForeignKey("devices.id", ondelete="SET NULL"))
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "name": self.name,
+            "model": self.model,
+            "capacity_liters": self.capacity_liters,
+            "device_id": str(self.device_id) if self.device_id else None,
+            "notes": self.notes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class Location(db.Model):
+    """Logical grow area (room, tent, shelf rack, etc.)."""
+
+    __tablename__ = "locations"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = db.Column(db.String(150), nullable=False)
+    parent_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("locations.id", ondelete="CASCADE")
+    )
+    location_type = db.Column(db.String(50), nullable=False, default="room")
+    unit_id = db.Column(UUID(as_uuid=True), db.ForeignKey("units.id", ondelete="SET NULL"))
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("name", "parent_id", name="uq_location_name_parent"),
+    )
+
+    children = db.relationship(
+        "Location", backref=db.backref("parent", remote_side="Location.id"),
+        cascade="all, delete-orphan",
+    )
+    shelf_positions = db.relationship(
+        "ShelfPosition", backref="location", cascade="all, delete-orphan"
+    )
+
+    def to_dict(self, include_children=False):
+        result = {
+            "id": str(self.id),
+            "name": self.name,
+            "parent_id": str(self.parent_id) if self.parent_id else None,
+            "location_type": self.location_type,
+            "unit_id": str(self.unit_id) if self.unit_id else None,
+            "notes": self.notes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+        if include_children:
+            result["children"] = [c.to_dict(include_children=True) for c in self.children]
+            result["shelf_positions"] = [s.to_dict() for s in self.shelf_positions]
+        return result
+
+
+class ShelfPosition(db.Model):
+    """Individual slot within a location."""
+
+    __tablename__ = "shelf_positions"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    location_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("locations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    label = db.Column(db.String(50), nullable=False)
+    row_num = db.Column(db.SmallInteger)
+    col_num = db.Column(db.SmallInteger)
+    occupied = db.Column(db.Boolean, nullable=False, default=False)
+
+    __table_args__ = (
+        UniqueConstraint("location_id", "label", name="uq_shelf_position"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "location_id": str(self.location_id),
+            "label": self.label,
+            "row_num": self.row_num,
+            "col_num": self.col_num,
+            "occupied": self.occupied,
+        }
+
+
+class Jar(db.Model):
+    """Central asset -- a physical jar being tracked through the workflow."""
+
+    __tablename__ = "jars"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tag_id = db.Column(db.String(100), unique=True)
+    label = db.Column(db.String(100))
+    volume_ml = db.Column(db.Float, default=946)
+    status = db.Column(db.String(30), nullable=False, default="clean")
+    current_location_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("locations.id", ondelete="SET NULL")
+    )
+    current_shelf_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("shelf_positions.id", ondelete="SET NULL")
+    )
+    current_cycle_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("grow_cycles.id", ondelete="SET NULL")
+    )
+    total_cycles = db.Column(db.Integer, nullable=False, default=0)
+    total_yield_g = db.Column(db.Float, nullable=False, default=0)
+    notes = db.Column(db.Text)
+    retired = db.Column(db.Boolean, nullable=False, default=False)
+    retired_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    current_location = db.relationship("Location", foreign_keys=[current_location_id])
+    current_shelf = db.relationship("ShelfPosition", foreign_keys=[current_shelf_id])
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "tag_id": self.tag_id,
+            "label": self.label,
+            "volume_ml": self.volume_ml,
+            "status": self.status,
+            "current_location_id": str(self.current_location_id) if self.current_location_id else None,
+            "current_shelf_id": str(self.current_shelf_id) if self.current_shelf_id else None,
+            "current_cycle_id": str(self.current_cycle_id) if self.current_cycle_id else None,
+            "total_cycles": self.total_cycles,
+            "total_yield_g": self.total_yield_g,
+            "notes": self.notes,
+            "retired": self.retired,
+            "retired_at": self.retired_at.isoformat() if self.retired_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class Batch(db.Model):
+    """A group of jars prepared together."""
+
+    __tablename__ = "batches"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    batch_code = db.Column(db.String(30), nullable=False, unique=True)
+    strain_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("mushroom_strains.id", ondelete="SET NULL")
+    )
+    recipe_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("substrate_recipes.id", ondelete="SET NULL")
+    )
+    status = db.Column(db.String(30), nullable=False, default="preparing")
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    strain = db.relationship("MushroomStrain", foreign_keys=[strain_id])
+    recipe = db.relationship("SubstrateRecipe", foreign_keys=[recipe_id])
+    batch_jars = db.relationship("BatchJar", backref="batch", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "batch_code": self.batch_code,
+            "strain_id": str(self.strain_id) if self.strain_id else None,
+            "recipe_id": str(self.recipe_id) if self.recipe_id else None,
+            "status": self.status,
+            "notes": self.notes,
+            "strain": self.strain.to_dict() if self.strain else None,
+            "recipe": self.recipe.to_dict() if self.recipe else None,
+            "jar_count": len(self.batch_jars) if self.batch_jars else 0,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class BatchJar(db.Model):
+    """Many-to-many between batches and jars."""
+
+    __tablename__ = "batch_jars"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    batch_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("batches.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    jar_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("jars.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    added_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("batch_id", "jar_id", name="uq_batch_jar"),
+    )
+
+    jar = db.relationship("Jar", foreign_keys=[jar_id])
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "batch_id": str(self.batch_id),
+            "jar_id": str(self.jar_id),
+            "added_at": self.added_at.isoformat() if self.added_at else None,
+        }
+
+
+class SterilizationRun(db.Model):
+    """An autoclave session for a batch of jars."""
+
+    __tablename__ = "sterilization_runs"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    batch_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("batches.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    autoclave_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("autoclave_units.id", ondelete="SET NULL"),
+    )
+    start_time = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    end_time = db.Column(db.DateTime)
+    target_temp_c = db.Column(db.Float, default=121)
+    target_psi = db.Column(db.Float, default=15)
+    duration_min = db.Column(db.Integer, default=90)
+    status = db.Column(db.String(30), nullable=False, default="running")
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+
+    jar_assignments = db.relationship(
+        "SterilizationJarAssignment", backref="run", cascade="all, delete-orphan"
+    )
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "batch_id": str(self.batch_id),
+            "autoclave_id": str(self.autoclave_id) if self.autoclave_id else None,
+            "start_time": self.start_time.isoformat() if self.start_time else None,
+            "end_time": self.end_time.isoformat() if self.end_time else None,
+            "target_temp_c": self.target_temp_c,
+            "target_psi": self.target_psi,
+            "duration_min": self.duration_min,
+            "status": self.status,
+            "notes": self.notes,
+            "jar_count": len(self.jar_assignments) if self.jar_assignments else 0,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class SterilizationJarAssignment(db.Model):
+    """Which jars were in each sterilization run."""
+
+    __tablename__ = "sterilization_jar_assignments"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("sterilization_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    jar_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("jars.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("run_id", "jar_id", name="uq_sterilization_jar"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "run_id": str(self.run_id),
+            "jar_id": str(self.jar_id),
+        }
+
+
+class InoculationSession(db.Model):
+    """A session where jars are inoculated with a strain."""
+
+    __tablename__ = "inoculation_sessions"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    batch_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("batches.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    strain_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("mushroom_strains.id", ondelete="SET NULL"),
+    )
+    inoculation_type = db.Column(db.String(50), default="liquid_culture")
+    started_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    ended_at = db.Column(db.DateTime)
+    operator = db.Column(db.String(100))
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+
+    jar_logs = db.relationship(
+        "InoculationJarLog", backref="session", cascade="all, delete-orphan"
+    )
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "batch_id": str(self.batch_id),
+            "strain_id": str(self.strain_id) if self.strain_id else None,
+            "inoculation_type": self.inoculation_type,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "ended_at": self.ended_at.isoformat() if self.ended_at else None,
+            "operator": self.operator,
+            "notes": self.notes,
+            "jar_count": len(self.jar_logs) if self.jar_logs else 0,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class InoculationJarLog(db.Model):
+    """Per-jar record within an inoculation session."""
+
+    __tablename__ = "inoculation_jar_log"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    session_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("inoculation_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    jar_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("jars.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    inoculated_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    cc_injected = db.Column(db.Float)
+    injection_site = db.Column(db.String(50))
+    notes = db.Column(db.Text)
+
+    __table_args__ = (
+        UniqueConstraint("session_id", "jar_id", name="uq_inoculation_jar"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "session_id": str(self.session_id),
+            "jar_id": str(self.jar_id),
+            "inoculated_at": self.inoculated_at.isoformat() if self.inoculated_at else None,
+            "cc_injected": self.cc_injected,
+            "injection_site": self.injection_site,
+            "notes": self.notes,
+        }
+
+
+class GrowCycle(db.Model):
+    """Colonisation + fruiting lifecycle per jar."""
+
+    __tablename__ = "grow_cycles"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    jar_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("jars.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    batch_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("batches.id", ondelete="SET NULL")
+    )
+    strain_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("mushroom_strains.id", ondelete="SET NULL")
+    )
+    inoculation_date = db.Column(db.DateTime)
+    colonization_start = db.Column(db.DateTime)
+    colonization_end = db.Column(db.DateTime)
+    fruiting_start = db.Column(db.DateTime)
+    fruiting_end = db.Column(db.DateTime)
+    status = db.Column(db.String(30), nullable=False, default="colonizing")
+    total_yield_g = db.Column(db.Float, nullable=False, default=0)
+    biological_efficiency_pct = db.Column(db.Float)
+    substrate_dry_weight_g = db.Column(db.Float)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    flushes = db.relationship("Flush", backref="cycle", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "jar_id": str(self.jar_id),
+            "batch_id": str(self.batch_id) if self.batch_id else None,
+            "strain_id": str(self.strain_id) if self.strain_id else None,
+            "inoculation_date": self.inoculation_date.isoformat() if self.inoculation_date else None,
+            "colonization_start": self.colonization_start.isoformat() if self.colonization_start else None,
+            "colonization_end": self.colonization_end.isoformat() if self.colonization_end else None,
+            "fruiting_start": self.fruiting_start.isoformat() if self.fruiting_start else None,
+            "fruiting_end": self.fruiting_end.isoformat() if self.fruiting_end else None,
+            "status": self.status,
+            "total_yield_g": self.total_yield_g,
+            "biological_efficiency_pct": self.biological_efficiency_pct,
+            "substrate_dry_weight_g": self.substrate_dry_weight_g,
+            "notes": self.notes,
+            "flushes": [f.to_dict() for f in self.flushes] if self.flushes else [],
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class ColonizationCheck(db.Model):
+    """Periodic mycelium growth observation."""
+
+    __tablename__ = "colonization_checks"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    jar_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("jars.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    cycle_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("grow_cycles.id", ondelete="CASCADE")
+    )
+    check_date = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    colonization_pct = db.Column(db.Float, nullable=False, default=0)
+    notes = db.Column(db.Text)
+    photo_url = db.Column(db.String(500))
+    checked_by = db.Column(db.String(100))
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "jar_id": str(self.jar_id),
+            "cycle_id": str(self.cycle_id) if self.cycle_id else None,
+            "check_date": self.check_date.isoformat() if self.check_date else None,
+            "colonization_pct": self.colonization_pct,
+            "notes": self.notes,
+            "photo_url": self.photo_url,
+            "checked_by": self.checked_by,
+        }
+
+
+class ContaminationRecord(db.Model):
+    """Contamination event on a jar."""
+
+    __tablename__ = "contamination_records"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    jar_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("jars.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    cycle_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("grow_cycles.id", ondelete="SET NULL")
+    )
+    detected_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    contamination_type = db.Column(db.String(80))
+    severity = db.Column(db.String(30), default="moderate")
+    action_taken = db.Column(db.String(50), default="quarantine")
+    disposed_at = db.Column(db.DateTime)
+    notes = db.Column(db.Text)
+    photo_url = db.Column(db.String(500))
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "jar_id": str(self.jar_id),
+            "cycle_id": str(self.cycle_id) if self.cycle_id else None,
+            "detected_at": self.detected_at.isoformat() if self.detected_at else None,
+            "contamination_type": self.contamination_type,
+            "severity": self.severity,
+            "action_taken": self.action_taken,
+            "disposed_at": self.disposed_at.isoformat() if self.disposed_at else None,
+            "notes": self.notes,
+            "photo_url": self.photo_url,
+        }
+
+
+class JarMovement(db.Model):
+    """Location transfer log for a jar."""
+
+    __tablename__ = "jar_movements"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    jar_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("jars.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    from_location_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("locations.id", ondelete="SET NULL")
+    )
+    to_location_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("locations.id", ondelete="SET NULL")
+    )
+    from_shelf_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("shelf_positions.id", ondelete="SET NULL")
+    )
+    to_shelf_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("shelf_positions.id", ondelete="SET NULL")
+    )
+    moved_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    moved_by = db.Column(db.String(100))
+    reason = db.Column(db.String(200))
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "jar_id": str(self.jar_id),
+            "from_location_id": str(self.from_location_id) if self.from_location_id else None,
+            "to_location_id": str(self.to_location_id) if self.to_location_id else None,
+            "from_shelf_id": str(self.from_shelf_id) if self.from_shelf_id else None,
+            "to_shelf_id": str(self.to_shelf_id) if self.to_shelf_id else None,
+            "moved_at": self.moved_at.isoformat() if self.moved_at else None,
+            "moved_by": self.moved_by,
+            "reason": self.reason,
+        }
+
+
+class Flush(db.Model):
+    """Individual fruiting flush within a grow cycle."""
+
+    __tablename__ = "flushes"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    cycle_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("grow_cycles.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    jar_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("jars.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    flush_number = db.Column(db.SmallInteger, nullable=False, default=1)
+    started_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    harvested_at = db.Column(db.DateTime)
+    yield_g = db.Column(db.Float)
+    notes = db.Column(db.Text)
+
+    __table_args__ = (
+        UniqueConstraint("cycle_id", "flush_number", name="uq_flush_number"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "cycle_id": str(self.cycle_id),
+            "jar_id": str(self.jar_id),
+            "flush_number": self.flush_number,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "harvested_at": self.harvested_at.isoformat() if self.harvested_at else None,
+            "yield_g": self.yield_g,
+            "notes": self.notes,
+        }
+
+
+class JarPhoto(db.Model):
+    """Image reference for a jar."""
+
+    __tablename__ = "jar_photos"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    jar_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("jars.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    cycle_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("grow_cycles.id", ondelete="SET NULL")
+    )
+    photo_path = db.Column(db.String(500), nullable=False)
+    caption = db.Column(db.String(300))
+    taken_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "jar_id": str(self.jar_id),
+            "cycle_id": str(self.cycle_id) if self.cycle_id else None,
+            "photo_path": self.photo_path,
+            "caption": self.caption,
+            "taken_at": self.taken_at.isoformat() if self.taken_at else None,
+        }
+
+
+class ScanEvent(db.Model):
+    """NFC / QR code scan log."""
+
+    __tablename__ = "scan_events"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    jar_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("jars.id", ondelete="SET NULL")
+    )
+    tag_id = db.Column(db.String(100))
+    scanned_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    scanner_id = db.Column(db.String(100))
+    action = db.Column(db.String(50))
+    metadata = db.Column(JSONB)
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "jar_id": str(self.jar_id) if self.jar_id else None,
+            "tag_id": self.tag_id,
+            "scanned_at": self.scanned_at.isoformat() if self.scanned_at else None,
+            "scanner_id": self.scanner_id,
+            "action": self.action,
+            "metadata": self.metadata,
+        }
+
+
+class JarEnvLink(db.Model):
+    """Links a jar to an IoT environment sensor device."""
+
+    __tablename__ = "jar_env_links"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    jar_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("jars.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    device_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    linked_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    unlinked_at = db.Column(db.DateTime)
+
+    __table_args__ = (
+        UniqueConstraint("jar_id", "device_id", name="uq_jar_env_active"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "jar_id": str(self.jar_id),
+            "device_id": str(self.device_id),
+            "linked_at": self.linked_at.isoformat() if self.linked_at else None,
+            "unlinked_at": self.unlinked_at.isoformat() if self.unlinked_at else None,
+        }
