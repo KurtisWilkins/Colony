@@ -36,6 +36,13 @@ import HierarchyOverview from './pages/management/HierarchyOverview';
 import FacilityManager from './pages/management/FacilityManager';
 import BuildingManager from './pages/management/BuildingManager';
 import UnitManager from './pages/management/UnitManager';
+import InventoryDashboard from './pages/inventory/InventoryDashboard';
+import JarList from './pages/inventory/JarList';
+import JarDetail from './pages/inventory/JarDetail';
+import BatchManager from './pages/inventory/BatchManager';
+import InventoryAnalytics from './pages/inventory/InventoryAnalytics';
+import MobileScan from './pages/inventory/MobileScan';
+import LocationManager from './pages/inventory/LocationManager';
 
 function Clock() {
   const [time, setTime] = useState(new Date());
@@ -95,6 +102,15 @@ function App() {
     { to: '/irrigation/setup-guide', label: '\u25B6 SETUP GUIDE' },
   ];
 
+  const inventoryItems = [
+    { to: '/inventory', label: '\u2B21 DASHBOARD', end: true },
+    { to: '/inventory/jars', label: '\u25A3 JARS' },
+    { to: '/inventory/batches', label: '\u229E BATCHES' },
+    { to: '/inventory/locations', label: '\u25C8 LOCATIONS' },
+    { to: '/inventory/analytics', label: '\u2261 ANALYTICS' },
+    { to: '/scan', label: '\u25CE MOBILE SCAN' },
+  ];
+
   const managementItems = [
     { to: '/manage', label: '\u25C8 OVERVIEW', end: true },
     { to: '/manage/facilities', label: '\u229E FACILITIES' },
@@ -149,6 +165,20 @@ function App() {
             <NavLink
               key={item.to}
               to={item.to}
+              style={({ isActive }) => ({
+                ...styles.navLink,
+                ...(isActive ? styles.navLinkActive : {}),
+              })}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+          <div style={styles.navSectionHeader}>[ MUSHROOM INVENTORY ]</div>
+          {inventoryItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
               style={({ isActive }) => ({
                 ...styles.navLink,
                 ...(isActive ? styles.navLinkActive : {}),
@@ -275,6 +305,20 @@ function App() {
                 {item.label}
               </NavLink>
             ))}
+            <div style={styles.navSectionHeader}>[ MUSHROOM INVENTORY ]</div>
+            {inventoryItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                style={({ isActive }) => ({
+                  ...styles.mobileNavLink,
+                  ...(isActive ? styles.navLinkActive : {}),
+                })}
+              >
+                {item.label}
+              </NavLink>
+            ))}
             <div style={styles.navSectionHeader}>[ SYSTEM MANAGEMENT ]</div>
             {managementItems.map((item) => (
               <NavLink
@@ -375,6 +419,15 @@ function App() {
             <Route path="/irrigation/wiring-guide" element={<IrrigationWiringGuideNew />} />
             <Route path="/irrigation/wiring" element={<IrrigationWiringGuide />} />
             <Route path="/irrigation/setup-guide" element={<IrrigationSetupGuide />} />
+            {/* Inventory pages */}
+            <Route path="/inventory" element={<InventoryDashboard />} />
+            <Route path="/inventory/jars" element={<JarList />} />
+            <Route path="/inventory/jars/:jarId" element={<JarDetail />} />
+            <Route path="/inventory/batches" element={<BatchManager />} />
+            <Route path="/inventory/locations" element={<LocationManager />} />
+            <Route path="/inventory/analytics" element={<InventoryAnalytics />} />
+            <Route path="/scan" element={<MobileScan />} />
+            <Route path="/scan/:tagId" element={<MobileScan />} />
             {/* Admin pages */}
             {isAdmin && (
               <>
