@@ -1571,7 +1571,7 @@ class ScanEvent(db.Model):
     scanned_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
     scanner_id = db.Column(db.String(100))
     action = db.Column(db.String(50))
-    metadata = db.Column(JSONB)
+    scan_metadata = db.Column(JSONB)
 
     def to_dict(self):
         return {
@@ -1581,7 +1581,7 @@ class ScanEvent(db.Model):
             "scanned_at": self.scanned_at.isoformat() if self.scanned_at else None,
             "scanner_id": self.scanner_id,
             "action": self.action,
-            "metadata": self.metadata,
+            "scan_metadata": self.scan_metadata,
         }
 
 
