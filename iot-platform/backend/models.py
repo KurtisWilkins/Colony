@@ -259,18 +259,36 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(16), nullable=False, default="user")  # 'admin' or 'user'
+    role = db.Column(db.String(20), nullable=False, default="viewer")  # 'admin', 'operator', 'viewer'
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    email = db.Column(db.String(200), nullable=True)
     created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    created_by = db.Column(db.Integer, nullable=True)
+    last_login = db.Column(db.DateTime, nullable=True)
+    last_login_ip = db.Column(db.String(50), nullable=True)
+    force_password_change = db.Column(db.Boolean, default=False, nullable=False)
+
+    # Relationships
+    device_assignments = db.relationship(
+        "UserDeviceAssignment", backref="user", cascade="all, delete-orphan"
+    )
+    sessions = db.relationship(
+        "UserSession", backref="user", cascade="all, delete-orphan"
+    )
 
     def to_dict(self):
         """Serialise the user to a dictionary (never include password_hash)."""
         return {
             "id": self.id,
             "username": self.username,
+            "email": self.email,
             "role": self.role,
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_by": self.created_by,
+            "last_login": self.last_login.isoformat() if self.last_login else None,
+            "last_login_ip": self.last_login_ip,
+            "force_password_change": self.force_password_change,
         }
 
 
@@ -711,4 +729,130 @@ class ClimateRuntimeSession(db.Model):
             "humidity_at_start": self.humidity_at_start,
             "safety_cutoff": self.safety_cutoff,
             "test_mode": self.test_mode,
+        }
+
+
+# ---------------------------------------------------------------------------
+# DeviceMqttCredential model
+# ---------------------------------------------------------------------------
+class DeviceMqttCredential(db.Model):
+    """MQTT authentication credentials for a device."""
+
+    __tablename__ = "device_mqtt_credentials"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    device_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    mqtt_username = db.Column(db.String(200), unique=True, nullable=False)
+    mqtt_password_hash = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    last_used = db.Column(db.DateTime, nullable=True)
+    revoked = db.Column(db.Boolean, default=False, nullable=False)
+
+    def to_dict(self):
+        """Serialise the credential record (never include password hash)."""
+        return {
+            "id": self.id,
+            "device_id": str(self.device_id),
+            "mqtt_username": self.mqtt_username,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "last_used": self.last_used.isoformat() if self.last_used else None,
+            "revoked": self.revoked,
+        }
+
+
+# ---------------------------------------------------------------------------
+# UserDeviceAssignment model
+# ---------------------------------------------------------------------------
+class UserDeviceAssignment(db.Model):
+    """Maps users to devices they are authorised to access."""
+
+    __tablename__ = "user_device_assignments"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    device_id = db.Column(
+        UUID(as_uuid=True),
+        db.ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    assigned_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    assigned_by = db.Column(db.Integer, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "device_id", name="uq_user_device_assignment"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "device_id": str(self.device_id),
+            "assigned_at": self.assigned_at.isoformat() if self.assigned_at else None,
+            "assigned_by": self.assigned_by,
+        }
+
+
+# ---------------------------------------------------------------------------
+# UserSession model
+# ---------------------------------------------------------------------------
+class UserSession(db.Model):
+    """Tracks active user sessions for auditing and revocation."""
+
+    __tablename__ = "user_sessions"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    ip_address = db.Column(db.String(50), nullable=True)
+    user_agent = db.Column(db.String(500), nullable=True)
+    revoked = db.Column(db.Boolean, default=False, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "user_id": self.user_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "ip_address": self.ip_address,
+            "user_agent": self.user_agent,
+            "revoked": self.revoked,
+        }
+
+
+# ---------------------------------------------------------------------------
+# SecurityEvent model
+# ---------------------------------------------------------------------------
+class SecurityEvent(db.Model):
+    """Immutable log of security-relevant events for auditing."""
+
+    __tablename__ = "security_events"
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    event_time = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    event_type = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, nullable=True)
+    ip_address = db.Column(db.String(50), nullable=True)
+    details = db.Column(JSONB, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "event_time": self.event_time.isoformat() if self.event_time else None,
+            "event_type": self.event_type,
+            "user_id": self.user_id,
+            "ip_address": self.ip_address,
+            "details": self.details,
         }

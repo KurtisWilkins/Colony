@@ -96,6 +96,11 @@ def create_app():
     from routes.climate import climate_bp
     app.register_blueprint(climate_bp)
 
+    from routes.users import users_bp
+    from routes.device_credentials import device_credentials_bp
+    app.register_blueprint(users_bp)
+    app.register_blueprint(device_credentials_bp)
+
     # ------------------------------------------------------------------
     # Health check endpoint
     # ------------------------------------------------------------------

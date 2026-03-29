@@ -363,3 +363,51 @@ export function sendDehumidifierOff(deviceId) {
 export function sendClimateAllOff(deviceId) {
   return request(`/api/control/${deviceId}/climate/all_off`, { method: 'POST' });
 }
+
+// ── Security & User Management ───────────────────────────────────────────
+
+export function getUsers() { return request('/api/users'); }
+export function createUser(data) {
+  return request('/api/users', { method: 'POST', body: JSON.stringify(data) });
+}
+export function updateUser(userId, data) {
+  return request(`/api/users/${userId}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+export function deleteUser(userId) {
+  return request(`/api/users/${userId}`, { method: 'DELETE' });
+}
+export function resetUserPassword(userId) {
+  return request(`/api/users/${userId}/reset-password`, { method: 'POST' });
+}
+export function getUserDevices(userId) {
+  return request(`/api/users/${userId}/devices`);
+}
+export function assignUserDevice(userId, deviceId) {
+  return request(`/api/users/${userId}/devices`, {
+    method: 'POST', body: JSON.stringify({ device_id: deviceId }),
+  });
+}
+export function removeUserDevice(userId, deviceId) {
+  return request(`/api/users/${userId}/devices/${deviceId}`, { method: 'DELETE' });
+}
+export function getSecurityEvents(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/api/security/events${q ? '?' + q : ''}`);
+}
+export function generateDeviceCredentials(deviceId) {
+  return request(`/api/devices/${deviceId}/credentials/generate`, { method: 'POST' });
+}
+export function getDeviceCredentialStatus(deviceId) {
+  return request(`/api/devices/${deviceId}/credentials/status`);
+}
+export function rotateDeviceCredentials(deviceId) {
+  return request(`/api/devices/${deviceId}/credentials/rotate`, { method: 'POST' });
+}
+export function revokeDeviceCredentials(deviceId) {
+  return request(`/api/devices/${deviceId}/credentials/revoke`, { method: 'POST' });
+}
+export function changePassword(currentPassword, newPassword) {
+  return request('/auth/change-password', {
+    method: 'POST', body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+}

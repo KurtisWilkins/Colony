@@ -28,6 +28,10 @@ import IrrigationWeather from './pages/irrigation/IrrigationWeather';
 import IrrigationWiringGuide from './pages/irrigation/IrrigationWiringGuide';
 import IrrigationWiringGuideNew from './pages/irrigation/WiringGuideNew';
 import IrrigationSetupGuide from './pages/irrigation/IrrigationSetupGuide';
+import UserManagement from './pages/admin/UserManagement';
+import DeviceAssignment from './pages/admin/DeviceAssignment';
+import SecurityLog from './pages/admin/SecurityLog';
+import MyAccount from './pages/user/MyAccount';
 import HierarchyOverview from './pages/management/HierarchyOverview';
 import FacilityManager from './pages/management/FacilityManager';
 import BuildingManager from './pages/management/BuildingManager';
@@ -99,6 +103,12 @@ function App() {
     { to: '/server-health', label: '\u2665 SERVER HEALTH' },
   ];
 
+  const adminItems = [
+    { to: '/admin/users', label: '\u2261 USERS' },
+    { to: '/admin/devices', label: '\u229E DEVICE ACCESS' },
+    { to: '/admin/security', label: '\u26A0 SECURITY LOG' },
+  ];
+
   return (
     <div style={styles.layout}>
       {/* Desktop Sidebar */}
@@ -161,6 +171,33 @@ function App() {
               {item.label}
             </NavLink>
           ))}
+          {isAdmin && (
+            <>
+              <div style={styles.navSectionHeader}>[ ADMIN ]</div>
+              {adminItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  style={({ isActive }) => ({
+                    ...styles.navLink,
+                    ...(isActive ? styles.navLinkActive : {}),
+                  })}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </>
+          )}
+          <div style={styles.navSectionHeader}>[ ACCOUNT ]</div>
+          <NavLink
+            to="/account"
+            style={({ isActive }) => ({
+              ...styles.navLink,
+              ...(isActive ? styles.navLinkActive : {}),
+            })}
+          >
+            &#9679; MY ACCOUNT
+          </NavLink>
         </nav>
         <div style={styles.sidebarFooter}>
           <div style={styles.sidebarUser}>
@@ -252,6 +289,33 @@ function App() {
                 {item.label}
               </NavLink>
             ))}
+            {isAdmin && (
+              <>
+                <div style={styles.navSectionHeader}>[ ADMIN ]</div>
+                {adminItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    style={({ isActive }) => ({
+                      ...styles.mobileNavLink,
+                      ...(isActive ? styles.navLinkActive : {}),
+                    })}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </>
+            )}
+            <div style={styles.navSectionHeader}>[ ACCOUNT ]</div>
+            <NavLink
+              to="/account"
+              style={({ isActive }) => ({
+                ...styles.mobileNavLink,
+                ...(isActive ? styles.navLinkActive : {}),
+              })}
+            >
+              &#9679; MY ACCOUNT
+            </NavLink>
           </nav>
         </div>
       )}
@@ -311,6 +375,16 @@ function App() {
             <Route path="/irrigation/wiring-guide" element={<IrrigationWiringGuideNew />} />
             <Route path="/irrigation/wiring" element={<IrrigationWiringGuide />} />
             <Route path="/irrigation/setup-guide" element={<IrrigationSetupGuide />} />
+            {/* Admin pages */}
+            {isAdmin && (
+              <>
+                <Route path="/admin/users" element={<UserManagement />} />
+                <Route path="/admin/devices" element={<DeviceAssignment />} />
+                <Route path="/admin/security" element={<SecurityLog />} />
+              </>
+            )}
+            {/* Account */}
+            <Route path="/account" element={<MyAccount />} />
           </Routes>
         </main>
       </div>
