@@ -447,8 +447,9 @@ def create_app():
         - total telemetry records stored
         - server uptime in seconds
         """
-        online_count = Device.query.filter_by(is_online=True).count()
-        offline_count = Device.query.filter_by(is_online=False).count()
+        online_count = Device.query.filter_by(is_online=True, status="active").count()
+        offline_count = Device.query.filter_by(is_online=False, status="active").count()
+        pending_count = Device.query.filter_by(status="pending").count()
         telemetry_count = db.session.query(Telemetry.id).count()
         facility_count = Facility.query.count()
         building_count = Building.query.count()
@@ -462,6 +463,7 @@ def create_app():
             "total_facilities": facility_count,
             "total_buildings": building_count,
             "total_units": unit_count,
+            "pending_devices": pending_count,
             "server_uptime_seconds": uptime_seconds,
         }), 200
 

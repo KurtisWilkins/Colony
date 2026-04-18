@@ -18,6 +18,7 @@ CREATE TABLE devices (
     unit          VARCHAR(255)  NOT NULL,                  -- room, zone, or logical unit
     device_name   VARCHAR(255)  NOT NULL,                  -- human-readable device label
     device_type   VARCHAR(50)   NOT NULL,                  -- e.g. 'sensor', 'actuator', 'combo'
+    status        VARCHAR(16)   NOT NULL DEFAULT 'active', -- 'active' or 'pending' (auto-discovered)
     registered_at TIMESTAMP     DEFAULT NOW(),             -- when the device was first registered
     last_seen     TIMESTAMP,                               -- last heartbeat / telemetry timestamp
     is_online     BOOLEAN       DEFAULT FALSE,             -- current connectivity status
