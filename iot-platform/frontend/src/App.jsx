@@ -17,10 +17,32 @@ import ThresholdConfig from './pages/ThresholdConfig';
 import WaterUsage from './pages/WaterUsage';
 import WiringGuide from './pages/WiringGuide';
 import SetupGuide from './pages/SetupGuide';
+import ServerHealth from './pages/ServerHealth';
+import ClimateThresholds from './pages/ClimateThresholds';
+import ClimateHistory from './pages/ClimateHistory';
+import IrrigationDashboard from './pages/irrigation/IrrigationDashboard';
+import ZoneScheduler from './pages/irrigation/ZoneScheduler';
+import SeasonalConfigPage from './pages/irrigation/SeasonalConfig';
+import ZoneHistory from './pages/irrigation/ZoneHistory';
+import IrrigationWeather from './pages/irrigation/IrrigationWeather';
+import IrrigationWiringGuide from './pages/irrigation/IrrigationWiringGuide';
+import IrrigationWiringGuideNew from './pages/irrigation/WiringGuideNew';
+import IrrigationSetupGuide from './pages/irrigation/IrrigationSetupGuide';
+import UserManagement from './pages/admin/UserManagement';
+import DeviceAssignment from './pages/admin/DeviceAssignment';
+import SecurityLog from './pages/admin/SecurityLog';
+import MyAccount from './pages/user/MyAccount';
 import HierarchyOverview from './pages/management/HierarchyOverview';
 import FacilityManager from './pages/management/FacilityManager';
 import BuildingManager from './pages/management/BuildingManager';
 import UnitManager from './pages/management/UnitManager';
+import InventoryDashboard from './pages/inventory/InventoryDashboard';
+import JarList from './pages/inventory/JarList';
+import JarDetail from './pages/inventory/JarDetail';
+import BatchManager from './pages/inventory/BatchManager';
+import InventoryAnalytics from './pages/inventory/InventoryAnalytics';
+import MobileScan from './pages/inventory/MobileScan';
+import LocationManager from './pages/inventory/LocationManager';
 
 function Clock() {
   const [time, setTime] = useState(new Date());
@@ -66,6 +88,27 @@ function App() {
     { to: '/water', label: '\u224B WATER USAGE' },
     { to: '/wiring', label: '\u26A1 WIRING GUIDE' },
     { to: '/setup-guide', label: '\u25B6 SETUP GUIDE' },
+    { to: '/devices/climate', label: '\u2103 CLIMATE' },
+    { to: '/devices/climate-history', label: '\u2103 CLIMATE HISTORY' },
+  ];
+
+  const irrigationItems = [
+    { to: '/irrigation/dashboard', label: '\u224B DASHBOARD' },
+    { to: '/irrigation/scheduler', label: '\u2261 SCHEDULER' },
+    { to: '/irrigation/seasonal', label: '\u25C8 SEASONAL' },
+    { to: '/irrigation/history', label: '\u224B HISTORY' },
+    { to: '/irrigation/weather', label: '\u2601 WEATHER' },
+    { to: '/irrigation/wiring-guide', label: '\u22A1 WIRING GUIDE' },
+    { to: '/irrigation/setup-guide', label: '\u25B6 SETUP GUIDE' },
+  ];
+
+  const inventoryItems = [
+    { to: '/inventory', label: '\u2B21 DASHBOARD', end: true },
+    { to: '/inventory/jars', label: '\u25A3 JARS' },
+    { to: '/inventory/batches', label: '\u229E BATCHES' },
+    { to: '/inventory/locations', label: '\u25C8 LOCATIONS' },
+    { to: '/inventory/analytics', label: '\u2261 ANALYTICS' },
+    { to: '/scan', label: '\u25CE MOBILE SCAN' },
   ];
 
   const managementItems = [
@@ -73,6 +116,13 @@ function App() {
     { to: '/manage/facilities', label: '\u229E FACILITIES' },
     { to: '/manage/buildings', label: '\u229F BUILDINGS' },
     { to: '/manage/units', label: '\u22A1 UNITS' },
+    { to: '/server-health', label: '\u2665 SERVER HEALTH' },
+  ];
+
+  const adminItems = [
+    { to: '/admin/users', label: '\u2261 USERS' },
+    { to: '/admin/devices', label: '\u229E DEVICE ACCESS' },
+    { to: '/admin/security', label: '\u26A0 SECURITY LOG' },
   ];
 
   return (
@@ -110,6 +160,33 @@ function App() {
               {item.label}
             </NavLink>
           ))}
+          <div style={styles.navSectionHeader}>[ IRRIGATION ]</div>
+          {irrigationItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              style={({ isActive }) => ({
+                ...styles.navLink,
+                ...(isActive ? styles.navLinkActive : {}),
+              })}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+          <div style={styles.navSectionHeader}>[ MUSHROOM INVENTORY ]</div>
+          {inventoryItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              style={({ isActive }) => ({
+                ...styles.navLink,
+                ...(isActive ? styles.navLinkActive : {}),
+              })}
+            >
+              {item.label}
+            </NavLink>
+          ))}
           <div style={styles.navSectionHeader}>[ SYSTEM MANAGEMENT ]</div>
           {managementItems.map((item) => (
             <NavLink
@@ -124,6 +201,33 @@ function App() {
               {item.label}
             </NavLink>
           ))}
+          {isAdmin && (
+            <>
+              <div style={styles.navSectionHeader}>[ ADMIN ]</div>
+              {adminItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  style={({ isActive }) => ({
+                    ...styles.navLink,
+                    ...(isActive ? styles.navLinkActive : {}),
+                  })}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </>
+          )}
+          <div style={styles.navSectionHeader}>[ ACCOUNT ]</div>
+          <NavLink
+            to="/account"
+            style={({ isActive }) => ({
+              ...styles.navLink,
+              ...(isActive ? styles.navLinkActive : {}),
+            })}
+          >
+            &#9679; MY ACCOUNT
+          </NavLink>
         </nav>
         <div style={styles.sidebarFooter}>
           <div style={styles.sidebarUser}>
@@ -187,6 +291,34 @@ function App() {
                 {item.label}
               </NavLink>
             ))}
+            <div style={styles.navSectionHeader}>[ IRRIGATION ]</div>
+            {irrigationItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                style={({ isActive }) => ({
+                  ...styles.mobileNavLink,
+                  ...(isActive ? styles.navLinkActive : {}),
+                })}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+            <div style={styles.navSectionHeader}>[ MUSHROOM INVENTORY ]</div>
+            {inventoryItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                style={({ isActive }) => ({
+                  ...styles.mobileNavLink,
+                  ...(isActive ? styles.navLinkActive : {}),
+                })}
+              >
+                {item.label}
+              </NavLink>
+            ))}
             <div style={styles.navSectionHeader}>[ SYSTEM MANAGEMENT ]</div>
             {managementItems.map((item) => (
               <NavLink
@@ -201,6 +333,33 @@ function App() {
                 {item.label}
               </NavLink>
             ))}
+            {isAdmin && (
+              <>
+                <div style={styles.navSectionHeader}>[ ADMIN ]</div>
+                {adminItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    style={({ isActive }) => ({
+                      ...styles.mobileNavLink,
+                      ...(isActive ? styles.navLinkActive : {}),
+                    })}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </>
+            )}
+            <div style={styles.navSectionHeader}>[ ACCOUNT ]</div>
+            <NavLink
+              to="/account"
+              style={({ isActive }) => ({
+                ...styles.mobileNavLink,
+                ...(isActive ? styles.navLinkActive : {}),
+              })}
+            >
+              &#9679; MY ACCOUNT
+            </NavLink>
           </nav>
         </div>
       )}
@@ -218,24 +377,67 @@ function App() {
         <main style={styles.mainContent}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            {/* Device-specific pages (must come before /devices/:facility) */}
+            <Route path="/devices/control" element={<ControlDashboard />} />
+            <Route path="/devices/thresholds" element={<ThresholdConfig />} />
+            <Route path="/devices/:deviceId/control" element={<ControlDashboard />} />
+            <Route path="/devices/:deviceId/thresholds" element={<ThresholdConfig />} />
+            <Route path="/devices/:deviceId/water" element={<WaterUsage />} />
+            <Route path="/devices/climate" element={<ClimateThresholds />} />
+            <Route path="/devices/:deviceId/climate" element={<ClimateThresholds />} />
+            <Route path="/devices/climate-history" element={<ClimateHistory />} />
+            <Route path="/devices/:deviceId/climate-history" element={<ClimateHistory />} />
+            {/* Hierarchy browsing */}
             <Route path="/devices" element={<HierarchyView />} />
             <Route path="/devices/:facility" element={<BuildingList />} />
             <Route path="/devices/:facility/:building" element={<UnitList />} />
             <Route path="/devices/:facility/:building/:unit" element={<DeviceList />} />
+            {/* Device detail */}
             <Route path="/device/:deviceId" element={<DeviceDetail />} />
-            <Route path="/devices/:deviceId/control" element={<ControlDashboard />} />
-            <Route path="/devices/:deviceId/thresholds" element={<ThresholdConfig />} />
-            <Route path="/devices/:deviceId/water" element={<WaterUsage />} />
-            <Route path="/devices/control" element={<ControlDashboard />} />
-            <Route path="/devices/thresholds" element={<ThresholdConfig />} />
+            {/* Grow tent pages */}
             <Route path="/water" element={<WaterUsage />} />
             <Route path="/wiring" element={<WiringGuide />} />
             <Route path="/setup-guide" element={<SetupGuide />} />
             <Route path="/register" element={<RegisterDevice />} />
+            {/* System management */}
             <Route path="/manage" element={<HierarchyOverview />} />
             <Route path="/manage/facilities" element={<FacilityManager />} />
             <Route path="/manage/buildings" element={<BuildingManager />} />
             <Route path="/manage/units" element={<UnitManager />} />
+            <Route path="/server-health" element={<ServerHealth />} />
+            {/* Irrigation pages */}
+            <Route path="/irrigation/dashboard" element={<IrrigationDashboard />} />
+            <Route path="/irrigation/:deviceId/dashboard" element={<IrrigationDashboard />} />
+            <Route path="/irrigation/scheduler" element={<ZoneScheduler />} />
+            <Route path="/irrigation/:deviceId/scheduler" element={<ZoneScheduler />} />
+            <Route path="/irrigation/seasonal" element={<SeasonalConfigPage />} />
+            <Route path="/irrigation/:deviceId/seasonal" element={<SeasonalConfigPage />} />
+            <Route path="/irrigation/history" element={<ZoneHistory />} />
+            <Route path="/irrigation/:deviceId/history" element={<ZoneHistory />} />
+            <Route path="/irrigation/weather" element={<IrrigationWeather />} />
+            <Route path="/irrigation/:deviceId/weather" element={<IrrigationWeather />} />
+            <Route path="/irrigation/wiring-guide" element={<IrrigationWiringGuideNew />} />
+            <Route path="/irrigation/wiring" element={<IrrigationWiringGuide />} />
+            <Route path="/irrigation/setup-guide" element={<IrrigationSetupGuide />} />
+            {/* Inventory pages */}
+            <Route path="/inventory" element={<InventoryDashboard />} />
+            <Route path="/inventory/jars" element={<JarList />} />
+            <Route path="/inventory/jars/:jarId" element={<JarDetail />} />
+            <Route path="/inventory/batches" element={<BatchManager />} />
+            <Route path="/inventory/locations" element={<LocationManager />} />
+            <Route path="/inventory/analytics" element={<InventoryAnalytics />} />
+            <Route path="/scan" element={<MobileScan />} />
+            <Route path="/scan/:tagId" element={<MobileScan />} />
+            {/* Admin pages */}
+            {isAdmin && (
+              <>
+                <Route path="/admin/users" element={<UserManagement />} />
+                <Route path="/admin/devices" element={<DeviceAssignment />} />
+                <Route path="/admin/security" element={<SecurityLog />} />
+              </>
+            )}
+            {/* Account */}
+            <Route path="/account" element={<MyAccount />} />
           </Routes>
         </main>
       </div>
@@ -286,6 +488,7 @@ const styles = {
     flexDirection: 'column',
     padding: 'var(--space-3) 0',
     flex: 1,
+    overflowY: 'auto',
   },
   navSectionHeader: {
     padding: 'var(--space-3) var(--space-4) var(--space-1)',
@@ -412,6 +615,8 @@ const styles = {
     paddingTop: '60px',
     display: 'flex',
     flexDirection: 'column',
+    overflowY: 'auto',
+    maxHeight: '100vh',
   },
   mobileNavLink: {
     display: 'block',

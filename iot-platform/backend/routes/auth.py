@@ -4,11 +4,13 @@ Single-user system — credentials are stored in environment variables.
 Uses Flask-Login for session management.
 """
 
+import re
 import functools
 import logging
 
 from flask import Blueprint, request, jsonify
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user
+from werkzeug.security import check_password_hash, generate_password_hash
 
 import config
 
@@ -120,11 +122,98 @@ def logout():
 
 
 # ---------------------------------------------------------------------------
-# GET /api/auth/me — check current session
+# GET /api/auth/me — check current session (enhanced with security fields)
 # ---------------------------------------------------------------------------
 @auth_bp.route("/api/auth/me", methods=["GET"])
 def get_current_user():
     """Return the currently authenticated user's info, or 401."""
     if not current_user.is_authenticated:
         return jsonify({"error": "Not authenticated"}), 401
-    return jsonify(current_user.to_dict()), 200
+
+    result = current_user.to_dict()
+
+    # For DB-backed users, include additional security fields
+    if hasattr(current_user, "force_password_change"):
+        result["force_password_change"] = current_user.force_password_change
+    else:
+        result["force_password_change"] = False
+
+    # Include assigned device IDs for non-admin users
+    try:
+        from models import UserDeviceAssignment
+        user_id = current_user.id
+        if isinstance(user_id, int):
+            assignments = UserDeviceAssignment.query.filter_by(user_id=user_id).all()
+            result["assigned_device_ids"] = [str(a.device_id) for a in assignments]
+        else:
+            result["assigned_device_ids"] = []
+    except Exception:
+        result["assigned_device_ids"] = []
+
+    return jsonify(result), 200
+
+
+# ---------------------------------------------------------------------------
+# POST /api/auth/change-password — change current user's password
+# ---------------------------------------------------------------------------
+@auth_bp.route("/api/auth/change-password", methods=["POST"])
+def change_password():
+    """
+    Change the authenticated user's password.
+    Requires current_password validation.
+    New password must be >= 12 chars with at least one number and one special char.
+    Clears force_password_change flag on success.
+    """
+    if not current_user.is_authenticated:
+        return jsonify({"error": "Authentication required"}), 401
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Request body must be valid JSON"}), 400
+
+    current_password = data.get("current_password", "")
+    new_password = data.get("new_password", "")
+
+    if not current_password or not new_password:
+        return jsonify({"error": "current_password and new_password are required"}), 400
+
+    # For DB-backed users, validate against stored hash
+    from models import db, User, SecurityEvent
+    user_id = current_user.id
+
+    if isinstance(user_id, int):
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        if not check_password_hash(user.password_hash, current_password):
+            return jsonify({"error": "Current password is incorrect"}), 401
+    else:
+        # EnvUser (single-user mode) — validate against config
+        if current_password != config.LOGIN_PASSWORD:
+            return jsonify({"error": "Current password is incorrect"}), 401
+        return jsonify({"error": "Password change not supported for environment-based accounts"}), 400
+
+    # Validate new password strength
+    if len(new_password) < 12:
+        return jsonify({"error": "Password must be at least 12 characters"}), 400
+    if not re.search(r"\d", new_password):
+        return jsonify({"error": "Password must contain at least one number"}), 400
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?`~]", new_password):
+        return jsonify({"error": "Password must contain at least one special character"}), 400
+
+    user.password_hash = generate_password_hash(new_password)
+    user.force_password_change = False
+    db.session.commit()
+
+    # Log the event
+    evt = SecurityEvent(
+        event_type="password_changed",
+        user_id=user.id,
+        ip_address=request.remote_addr,
+        details={"self_service": True},
+    )
+    db.session.add(evt)
+    db.session.commit()
+
+    return jsonify({"message": "Password changed successfully"}), 200

@@ -59,6 +59,9 @@ function Dashboard() {
       <div style={styles.header}>
         <h1 style={styles.title}>DASHBOARD</h1>
         <p style={styles.subtitle}>PLATFORM OVERVIEW AND REAL-TIME STATUS</p>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+          Platform overview showing all registered facilities, devices, and telemetry records. Navigate to specific devices using the sidebar or the DEVICES page.
+        </div>
       </div>
 
       <div style={styles.statGrid}>

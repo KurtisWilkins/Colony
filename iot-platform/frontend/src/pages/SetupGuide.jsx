@@ -251,6 +251,9 @@ function SetupGuide() {
         <p style={pageStyles.subtitle}>
           REGISTER A NEW GROW TENT CONTROLLER TO THE NETWORK
         </p>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+          Follow these steps to register a new grow tent controller to the network. Each step can be marked complete as you go. The guide covers hardware assembly through first data verification.
+        </div>
         <div style={pageStyles.progress}>
           <Badge variant={completedCount === totalSteps ? 'online' : 'warning'}>
             {completedCount} / {totalSteps} STEPS COMPLETE

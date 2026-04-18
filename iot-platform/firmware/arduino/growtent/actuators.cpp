@@ -24,10 +24,9 @@ void Actuators::begin() {
     pinMode(RELAY_MISTER, OUTPUT);
     digitalWrite(RELAY_MISTER, HIGH); // OFF
 
-    // Initialize fan PWM
-    ledcSetup(FAN_PWM_CHANNEL, FAN_PWM_FREQ, FAN_PWM_RESOLUTION);
-    ledcAttachPin(FAN_PWM_PIN, FAN_PWM_CHANNEL);
-    ledcWrite(FAN_PWM_CHANNEL, 0);
+    // Initialize fan PWM (ESP32 Core 3.x API)
+    ledcAttach(FAN_PWM_PIN, FAN_PWM_FREQ, FAN_PWM_RESOLUTION);
+    ledcWrite(FAN_PWM_PIN, 0);
     pinMode(FAN_PWM_PIN, OUTPUT);
     digitalWrite(FAN_PWM_PIN, LOW);
 
@@ -124,7 +123,7 @@ void Actuators::fanSetSpeed(int percent) {
     int duty = (int)((percent / 100.0f) * 255.0f);
     if (duty > 255) duty = 255;
 
-    ledcWrite(FAN_PWM_CHANNEL, duty);
+    ledcWrite(FAN_PWM_PIN, duty);
 
     logMsg("INFO", "Fan speed set to %d%% (duty=%d)", percent, duty);
 }
@@ -146,7 +145,7 @@ void Actuators::fanOff() {
     }
     fan_on = false;
     fan_speed_pct = 0;
-    ledcWrite(FAN_PWM_CHANNEL, 0);
+    ledcWrite(FAN_PWM_PIN, 0);
     digitalWrite(FAN_PWM_PIN, LOW);  // Ensure pin is fully LOW
     logMsg("INFO", "Fan OFF");
 }

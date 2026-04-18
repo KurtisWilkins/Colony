@@ -22,6 +22,18 @@ from models import db, Device, Telemetry, Facility, Building, Unit
 # Record server start time for uptime reporting
 _server_start_time = time.time()
 
+
+def _format_uptime(seconds):
+    """Format seconds into human-readable uptime string."""
+    days = int(seconds // 86400)
+    hours = int((seconds % 86400) // 3600)
+    mins = int((seconds % 3600) // 60)
+    if days > 0:
+        return f"{days}d {hours}h {mins}m"
+    if hours > 0:
+        return f"{hours}h {mins}m"
+    return f"{mins}m"
+
 # ---------------------------------------------------------------------------
 # Application factory
 # ---------------------------------------------------------------------------
@@ -78,6 +90,20 @@ def create_app():
     from routes.automation_api import automation_api_bp
     app.register_blueprint(automation_api_bp)
 
+    from routes.irrigation import irrigation_bp
+    app.register_blueprint(irrigation_bp)
+
+    from routes.climate import climate_bp
+    app.register_blueprint(climate_bp)
+
+    from routes.users import users_bp
+    from routes.device_credentials import device_credentials_bp
+    app.register_blueprint(users_bp)
+    app.register_blueprint(device_credentials_bp)
+
+    from routes.mushroom_inventory import inventory_bp
+    app.register_blueprint(inventory_bp)
+
     # ------------------------------------------------------------------
     # Health check endpoint
     # ------------------------------------------------------------------
@@ -85,6 +111,148 @@ def create_app():
     def health():
         """Simple health check -- returns 200 with {"status": "ok"}."""
         return jsonify({"status": "ok"}), 200
+
+    # ------------------------------------------------------------------
+    # Detailed server health endpoint
+    # ------------------------------------------------------------------
+    @app.route("/api/health/detailed", methods=["GET"])
+    @login_required
+    def health_detailed():
+        """Return detailed server health metrics."""
+        import psutil
+        import shutil
+
+        # CPU
+        cpu_pct = psutil.cpu_percent(interval=0.5)
+        cpu_count = psutil.cpu_count()
+        cpu_freq = psutil.cpu_freq()
+        load_1, load_5, load_15 = psutil.getloadavg()
+
+        # Memory
+        mem = psutil.virtual_memory()
+        swap = psutil.swap_memory()
+
+        # Disk
+        disk = shutil.disk_usage("/")
+
+        # Network
+        net = psutil.net_io_counters()
+
+        # CPU temperature (Raspberry Pi)
+        cpu_temp = None
+        try:
+            temps = psutil.sensors_temperatures()
+            if "cpu_thermal" in temps and temps["cpu_thermal"]:
+                cpu_temp = temps["cpu_thermal"][0].current
+            elif "cpu-thermal" in temps and temps["cpu-thermal"]:
+                cpu_temp = temps["cpu-thermal"][0].current
+        except (AttributeError, KeyError):
+            pass
+
+        # Process info
+        proc = psutil.Process()
+        proc_mem = proc.memory_info()
+
+        # Database size
+        db_size_bytes = None
+        try:
+            row = db.session.execute(
+                db.text("SELECT pg_database_size(current_database())")
+            ).scalar()
+            db_size_bytes = row
+        except Exception:
+            pass
+
+        # Table row counts
+        device_count = Device.query.count()
+        telemetry_count = db.session.query(Telemetry.id).count()
+        facility_count = Facility.query.count()
+
+        # Telemetry rate (records in last 5 minutes)
+        from datetime import timedelta
+        five_min_ago = datetime.now(timezone.utc) - timedelta(minutes=5)
+        recent_telemetry = Telemetry.query.filter(
+            Telemetry.received_at >= five_min_ago
+        ).count()
+        telemetry_per_min = round(recent_telemetry / 5.0, 1)
+
+        # MQTT service check
+        mqtt_running = False
+        for p in psutil.process_iter(['name', 'cmdline']):
+            try:
+                cmdline = p.info.get('cmdline') or []
+                if any('mqtt_service' in str(c) for c in cmdline):
+                    mqtt_running = True
+                    break
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+
+        # Mosquitto check
+        mosquitto_running = False
+        for p in psutil.process_iter(['name']):
+            try:
+                if p.info['name'] == 'mosquitto':
+                    mosquitto_running = True
+                    break
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+
+        uptime_seconds = round(time.time() - _server_start_time, 2)
+
+        return jsonify({
+            "server": {
+                "uptime_s": uptime_seconds,
+                "uptime_human": _format_uptime(uptime_seconds),
+            },
+            "cpu": {
+                "percent": cpu_pct,
+                "count": cpu_count,
+                "freq_mhz": round(cpu_freq.current) if cpu_freq else None,
+                "load_1m": round(load_1, 2),
+                "load_5m": round(load_5, 2),
+                "load_15m": round(load_15, 2),
+                "temperature_c": round(cpu_temp, 1) if cpu_temp else None,
+            },
+            "memory": {
+                "total_mb": round(mem.total / 1048576),
+                "used_mb": round(mem.used / 1048576),
+                "available_mb": round(mem.available / 1048576),
+                "percent": mem.percent,
+                "swap_total_mb": round(swap.total / 1048576),
+                "swap_used_mb": round(swap.used / 1048576),
+                "swap_percent": swap.percent,
+            },
+            "disk": {
+                "total_gb": round(disk.total / 1073741824, 1),
+                "used_gb": round(disk.used / 1073741824, 1),
+                "free_gb": round(disk.free / 1073741824, 1),
+                "percent": round(disk.used / disk.total * 100, 1),
+            },
+            "network": {
+                "bytes_sent_mb": round(net.bytes_sent / 1048576, 1),
+                "bytes_recv_mb": round(net.bytes_recv / 1048576, 1),
+                "packets_sent": net.packets_sent,
+                "packets_recv": net.packets_recv,
+                "errors_in": net.errin,
+                "errors_out": net.errout,
+            },
+            "database": {
+                "size_mb": round(db_size_bytes / 1048576, 1) if db_size_bytes else None,
+                "devices": device_count,
+                "telemetry_records": telemetry_count,
+                "facilities": facility_count,
+                "telemetry_per_min": telemetry_per_min,
+            },
+            "process": {
+                "flask_rss_mb": round(proc_mem.rss / 1048576, 1),
+                "flask_vms_mb": round(proc_mem.vms / 1048576, 1),
+            },
+            "services": {
+                "flask": True,
+                "mqtt_service": mqtt_running,
+                "mosquitto": mosquitto_running,
+            },
+        }), 200
 
     # ------------------------------------------------------------------
     # Firmware download endpoint
@@ -135,6 +303,16 @@ def create_app():
             if os.path.isfile(install_md):
                 zf.write(install_md, "INSTALL_LIBRARIES.md")
 
+            readme_md = os.path.join(firmware_dir, "arduino", "README_INSTALL.md")
+            if os.path.isfile(readme_md):
+                zf.write(readme_md, "README_INSTALL.md")
+
+            # Include dependency installer scripts
+            for installer in ("install_dependencies.py", "install_dependencies.bat", "install_dependencies.sh"):
+                ipath = os.path.join(firmware_dir, installer)
+                if os.path.isfile(ipath):
+                    zf.write(ipath, installer)
+
         buf.seek(0)
         return send_file(
             buf,
@@ -142,6 +320,120 @@ def create_app():
             as_attachment=True,
             download_name="growtent-firmware.zip",
         )
+
+    # ------------------------------------------------------------------
+    # Irrigation firmware download endpoint
+    # ------------------------------------------------------------------
+    @app.route("/api/firmware/irrigation/download", methods=["GET"])
+    @login_required
+    def download_irrigation_firmware():
+        """Zip the irrigation firmware and return as a downloadable file."""
+        firmware_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "firmware-irrigation")
+        )
+        src_dir = os.path.join(firmware_dir, "src")
+
+        if not os.path.isdir(src_dir):
+            return jsonify({"error": "Irrigation firmware directory not found"}), 404
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            # PlatformIO source files
+            for fname in sorted(os.listdir(src_dir)):
+                fpath = os.path.join(src_dir, fname)
+                if os.path.isfile(fpath):
+                    zf.write(fpath, os.path.join("firmware-irrigation", "src", fname))
+
+            # platformio.ini
+            pio_ini = os.path.join(firmware_dir, "platformio.ini")
+            if os.path.isfile(pio_ini):
+                zf.write(pio_ini, os.path.join("firmware-irrigation", "platformio.ini"))
+
+            # Arduino IDE folder
+            arduino_dir = os.path.join(firmware_dir, "arduino", "irrigation")
+            if os.path.isdir(arduino_dir):
+                for fname in sorted(os.listdir(arduino_dir)):
+                    fpath = os.path.join(arduino_dir, fname)
+                    if os.path.isfile(fpath):
+                        zf.write(fpath, os.path.join("irrigation", fname))
+
+        buf.seek(0)
+        return send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name="irrigation-firmware.zip",
+        )
+
+    # ------------------------------------------------------------------
+    # WROOM-32D irrigation firmware download
+    # ------------------------------------------------------------------
+    @app.route("/api/firmware/irrigation-wroom32d/download", methods=["GET"])
+    @login_required
+    def download_irrigation_wroom32d():
+        """Zip the WROOM-32D irrigation firmware."""
+        firmware_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "firmware-irrigation-wroom32d")
+        )
+        src_dir = os.path.join(firmware_dir, "src")
+
+        if not os.path.isdir(src_dir):
+            return jsonify({"error": "WROOM-32D firmware not found"}), 404
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for fname in sorted(os.listdir(src_dir)):
+                fpath = os.path.join(src_dir, fname)
+                if os.path.isfile(fpath):
+                    zf.write(fpath, os.path.join("firmware", "src", fname))
+            pio_ini = os.path.join(firmware_dir, "platformio.ini")
+            if os.path.isfile(pio_ini):
+                zf.write(pio_ini, os.path.join("firmware", "platformio.ini"))
+            arduino_dir = os.path.join(firmware_dir, "arduino", "irrigation")
+            if os.path.isdir(arduino_dir):
+                for fname in sorted(os.listdir(arduino_dir)):
+                    fpath = os.path.join(arduino_dir, fname)
+                    if os.path.isfile(fpath):
+                        zf.write(fpath, os.path.join("irrigation", fname))
+
+        buf.seek(0)
+        return send_file(buf, mimetype="application/zip", as_attachment=True,
+                         download_name="irrigation-wroom32d-firmware.zip")
+
+    # ------------------------------------------------------------------
+    # ESP32-S2 irrigation firmware download
+    # ------------------------------------------------------------------
+    @app.route("/api/firmware/irrigation-s2/download", methods=["GET"])
+    @login_required
+    def download_irrigation_s2():
+        """Zip the ESP32-S2 irrigation firmware."""
+        firmware_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "firmware-irrigation-s2")
+        )
+        src_dir = os.path.join(firmware_dir, "src")
+
+        if not os.path.isdir(src_dir):
+            return jsonify({"error": "ESP32-S2 firmware not found"}), 404
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for fname in sorted(os.listdir(src_dir)):
+                fpath = os.path.join(src_dir, fname)
+                if os.path.isfile(fpath):
+                    zf.write(fpath, os.path.join("firmware", "src", fname))
+            pio_ini = os.path.join(firmware_dir, "platformio.ini")
+            if os.path.isfile(pio_ini):
+                zf.write(pio_ini, os.path.join("firmware", "platformio.ini"))
+            arduino_dir = os.path.join(firmware_dir, "arduino", "irrigation_s2")
+            if os.path.isdir(arduino_dir):
+                for fname in sorted(os.listdir(arduino_dir)):
+                    fpath = os.path.join(arduino_dir, fname)
+                    if os.path.isfile(fpath):
+                        zf.write(fpath, os.path.join("irrigation_s2", fname))
+
+        buf.seek(0)
+        return send_file(buf, mimetype="application/zip", as_attachment=True,
+                         download_name="irrigation-s2-firmware.zip")
 
     # ------------------------------------------------------------------
     # Status endpoint -- aggregate platform statistics

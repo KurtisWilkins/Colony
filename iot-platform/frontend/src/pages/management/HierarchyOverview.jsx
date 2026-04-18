@@ -56,6 +56,9 @@ function HierarchyOverview() {
 
   return (
     <div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+        {'📋'} The hierarchy tree shows your complete facility structure: Facility → Building → Unit → Device. Create and manage these in the FACILITIES, BUILDINGS, and UNITS pages under System Management.
+      </div>
       <Card
         title="SYSTEM HIERARCHY"
         headerAction={

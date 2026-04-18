@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button, Input, AlertBanner, Loader } from '../components/ui';
+import { changePassword } from '../utils/api';
 
 const ASCII_HEADER = `
  ██████╗ ██████╗ ██╗      ██████╗ ███╗   ██╗██╗   ██╗
@@ -11,6 +12,33 @@ const ASCII_HEADER = `
  ╚═════╝ ╚═════╝ ╚══════╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝
 `.trim();
 
+function PasswordStrengthMini({ password }) {
+  const checks = useMemo(() => [
+    { label: '12+ CHARS', pass: password.length >= 12 },
+    { label: 'NUMBER', pass: /\d/.test(password) },
+    { label: 'SPECIAL', pass: /[^a-zA-Z0-9]/.test(password) },
+  ], [password]);
+  const passed = checks.filter((c) => c.pass).length;
+  const color = passed === 0 ? 'var(--color-phosphor-ghost)' : passed === 1 ? 'var(--color-red-alert)' : passed === 2 ? 'var(--color-amber)' : 'var(--color-phosphor-primary)';
+  if (!password) return null;
+  return (
+    <div style={{ marginBottom: 'var(--space-3)' }}>
+      <div style={{ display: 'flex', gap: 'var(--space-1)', marginBottom: 'var(--space-1)' }}>
+        {[0, 1, 2].map((i) => (
+          <div key={i} style={{ flex: 1, height: '3px', borderRadius: '2px', background: i < passed ? color : 'var(--color-bg-elevated)', transition: 'all 0.2s' }} />
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+        {checks.map((c) => (
+          <span key={c.label} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: c.pass ? 'var(--color-phosphor-primary)' : 'var(--color-phosphor-ghost)' }}>
+            {c.pass ? '\u2713' : '\u2717'} {c.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Login() {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
@@ -18,6 +46,12 @@ function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
+
+  // Force password change state
+  const [forceChange, setForceChange] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,12 +67,44 @@ function Login() {
     setLoading(true);
 
     try {
-      await login(username, password);
+      const result = await login(username, password);
+      if (result && result.force_password_change) {
+        setForceChange(true);
+        setConnecting(false);
+      }
     } catch (err) {
       setError(err.message || 'ACCESS DENIED. AUTHENTICATION FAILED.');
       setConnecting(false);
     }
     setLoading(false);
+  };
+
+  const handleForcePasswordChange = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!newPassword || !confirmPassword) {
+      setError('ALL FIELDS ARE REQUIRED.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('PASSWORDS DO NOT MATCH.');
+      return;
+    }
+    if (newPassword.length < 12) {
+      setError('PASSWORD MUST BE AT LEAST 12 CHARACTERS.');
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await changePassword(password, newPassword);
+      // Re-login with new password
+      await login(username, newPassword);
+    } catch (err) {
+      setError(err.message || 'FAILED TO CHANGE PASSWORD.');
+    }
+    setChangingPassword(false);
   };
 
   return (
@@ -79,10 +145,61 @@ function Login() {
 
         {error && <AlertBanner variant="error">{error}</AlertBanner>}
 
-        {connecting && !error ? (
+        {connecting && !error && !forceChange ? (
           <div style={{ textAlign: 'center', padding: 'var(--space-8) 0' }}>
             <Loader type="spin" text="CONNECTING" />
           </div>
+        ) : forceChange ? (
+          <form onSubmit={handleForcePasswordChange}>
+            <div style={{
+              textAlign: 'center', marginBottom: 'var(--space-4)',
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)',
+              color: 'var(--color-amber)', letterSpacing: 'var(--letter-spacing-wider)',
+            }}>
+              PASSWORD CHANGE REQUIRED
+            </div>
+
+            <Input
+              id="new-password"
+              label="New Password"
+              prefix="> "
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="ENTER NEW PASSWORD"
+              autoComplete="new-password"
+              autoFocus
+            />
+            <PasswordStrengthMini password={newPassword} />
+            <Input
+              id="confirm-password"
+              label="Confirm Password"
+              prefix="> "
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="CONFIRM NEW PASSWORD"
+              autoComplete="new-password"
+            />
+            {confirmPassword && newPassword !== confirmPassword && (
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)',
+                color: 'var(--color-red-alert)', marginBottom: 'var(--space-2)',
+              }}>
+                &#10005; PASSWORDS DO NOT MATCH
+              </div>
+            )}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              loading={changingPassword}
+              disabled={changingPassword}
+              style={{ width: '100%', marginTop: 'var(--space-2)' }}
+            >
+              SET NEW PASSWORD
+            </Button>
+          </form>
         ) : (
           <form onSubmit={handleSubmit}>
             <Input

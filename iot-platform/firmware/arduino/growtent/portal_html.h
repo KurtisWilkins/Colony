@@ -1,0 +1,296 @@
+#ifndef PORTAL_HTML_H
+#define PORTAL_HTML_H
+
+#include <Arduino.h>
+
+// Captive portal HTML stored in program memory (PROGMEM).
+// This eliminates the need for SPIFFS upload — the portal works
+// immediately after flashing via Arduino IDE or PlatformIO.
+
+const char PORTAL_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GrowTent Setup</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0d0d;color:#00ff41;font-family:'Courier New',monospace;padding:16px;max-width:600px;margin:0 auto;font-size:14px}
+h1{text-align:center;margin:20px 0;font-size:22px;color:#00ff41;text-shadow:0 0 10px rgba(0,255,65,0.5)}
+h2{color:#00cc33;font-size:16px;margin:20px 0 12px 0;padding-bottom:6px;border-bottom:1px solid #1a3a1a}
+.subtitle{text-align:center;color:#339933;font-size:12px;margin-bottom:24px}
+form{display:flex;flex-direction:column;gap:6px}
+.field{display:flex;flex-direction:column;margin-bottom:10px}
+label{color:#00cc33;font-size:12px;margin-bottom:3px}
+input,select{background:#111;border:1px solid #1a3a1a;color:#00ff41;padding:8px 10px;font-family:'Courier New',monospace;font-size:14px;border-radius:3px;width:100%}
+input:focus{outline:none;border-color:#00ff41;box-shadow:0 0 5px rgba(0,255,65,0.3)}
+input::placeholder{color:#1a5a1a}
+.desc{color:#336633;font-size:11px;margin-top:2px}
+.row{display:flex;gap:10px}
+.row .field{flex:1}
+button{background:#003300;color:#00ff41;border:1px solid #00ff41;padding:12px;font-family:'Courier New',monospace;font-size:14px;cursor:pointer;border-radius:3px;margin-top:8px;text-transform:uppercase;letter-spacing:1px}
+button:hover{background:#004400;box-shadow:0 0 10px rgba(0,255,65,0.3)}
+button:active{background:#005500}
+.scan-btn{margin-bottom:8px;padding:8px;font-size:12px}
+.btn-danger{border-color:#ff4444;color:#ff4444;background:#330000}
+.btn-danger:hover{background:#440000;box-shadow:0 0 10px rgba(255,68,68,0.3)}
+#status{text-align:center;padding:16px;margin:16px 0;display:none;border:1px solid #00ff41;border-radius:3px;background:#001a00}
+.networks{max-height:150px;overflow-y:auto;border:1px solid #1a3a1a;border-radius:3px;margin-bottom:8px;display:none}
+.net-item{padding:6px 10px;cursor:pointer;display:flex;justify-content:space-between;border-bottom:1px solid #0a1a0a}
+.net-item:hover{background:#0a2a0a}
+.net-item:last-child{border-bottom:none}
+.net-rssi{color:#336633;font-size:11px}
+.net-lock{color:#997700;font-size:11px}
+.section{background:#0a0a0a;border:1px solid #1a2a1a;border-radius:4px;padding:14px;margin-bottom:12px}
+.version{text-align:center;color:#1a3a1a;font-size:11px;margin-top:20px;padding-top:10px;border-top:1px solid #0a1a0a}
+</style>
+</head>
+<body>
+
+<h1>&gt; GrowTent Setup_</h1>
+<p class="subtitle">Mushroom Grow Tent Environmental Controller</p>
+
+<form id="configForm" method="POST" action="/save">
+
+<div class="section">
+<h2>// Network</h2>
+<button type="button" class="scan-btn" onclick="scanWifi()">Scan WiFi Networks</button>
+<div id="networkList" class="networks"></div>
+<div class="field">
+  <label for="wifi_ssid">WiFi SSID</label>
+  <input type="text" id="wifi_ssid" name="wifi_ssid" placeholder="your-network-name" list="ssidList" required>
+  <datalist id="ssidList"></datalist>
+</div>
+<div class="field">
+  <label for="wifi_pass">WiFi Password</label>
+  <input type="password" id="wifi_pass" name="wifi_pass" placeholder="network-password">
+</div>
+</div>
+
+<div class="section">
+<h2>// MQTT Broker</h2>
+<div class="row">
+  <div class="field">
+    <label for="mqtt_host">Host / IP</label>
+    <input type="text" id="mqtt_host" name="mqtt_host" placeholder="192.168.1.100">
+  </div>
+  <div class="field" style="max-width:100px">
+    <label for="mqtt_port">Port</label>
+    <input type="number" id="mqtt_port" name="mqtt_port" placeholder="1883">
+  </div>
+</div>
+<div class="row">
+  <div class="field">
+    <label for="mqtt_user">Username</label>
+    <input type="text" id="mqtt_user" name="mqtt_user" placeholder="(optional)">
+  </div>
+  <div class="field">
+    <label for="mqtt_pass">Password</label>
+    <input type="password" id="mqtt_pass" name="mqtt_pass" placeholder="(optional)">
+  </div>
+</div>
+</div>
+
+<div class="section">
+<h2>// Device Identity</h2>
+<p class="desc">MQTT topic path: facility/building/unit/device_name</p>
+<div class="row">
+  <div class="field">
+    <label for="facility">Facility</label>
+    <input type="text" id="facility" name="facility" placeholder="farm">
+  </div>
+  <div class="field">
+    <label for="building">Building</label>
+    <input type="text" id="building" name="building" placeholder="bldg1">
+  </div>
+</div>
+<div class="row">
+  <div class="field">
+    <label for="unit">Unit</label>
+    <input type="text" id="unit" name="unit" placeholder="tent1">
+  </div>
+  <div class="field">
+    <label for="device_name">Device Name</label>
+    <input type="text" id="device_name" name="device_name" placeholder="controller1">
+  </div>
+</div>
+</div>
+
+<div class="section">
+<h2>// Tank Setup</h2>
+<p class="desc">Ultrasonic sensor distance readings for tank calibration</p>
+<div class="row">
+  <div class="field">
+    <label for="tank_full_cm">Full Distance (cm)</label>
+    <input type="number" step="0.1" id="tank_full_cm" name="tank_full_cm" placeholder="10">
+    <span class="desc">Sensor-to-water when full</span>
+  </div>
+  <div class="field">
+    <label for="tank_empty_cm">Empty Distance (cm)</label>
+    <input type="number" step="0.1" id="tank_empty_cm" name="tank_empty_cm" placeholder="50">
+    <span class="desc">Sensor-to-bottom when empty</span>
+  </div>
+</div>
+<div class="field">
+  <label for="flow_cal">Flow Calibration (pulses/L)</label>
+  <input type="number" step="0.1" id="flow_cal" name="flow_cal" placeholder="7.5">
+  <span class="desc">YF-S201 default: 7.5 pulses per liter</span>
+</div>
+</div>
+
+<div class="section">
+<h2>// Thresholds</h2>
+<div class="row">
+  <div class="field">
+    <label for="hum_on_pct">Humidity ON (%)</label>
+    <input type="number" step="0.1" id="hum_on_pct" name="hum_on_pct" placeholder="85">
+    <span class="desc">Mister turns ON below this</span>
+  </div>
+  <div class="field">
+    <label for="hum_off_pct">Humidity OFF (%)</label>
+    <input type="number" step="0.1" id="hum_off_pct" name="hum_off_pct" placeholder="92">
+    <span class="desc">Mister turns OFF above this</span>
+  </div>
+</div>
+<div class="field">
+  <label for="co2_high_ppm">CO2 High (ppm)</label>
+  <input type="number" id="co2_high_ppm" name="co2_high_ppm" placeholder="1200">
+  <span class="desc">Fan goes to 100% above this; reduces at threshold-100ppm</span>
+</div>
+<div class="row">
+  <div class="field">
+    <label for="temp_min_c">Temp Min (C)</label>
+    <input type="number" step="0.1" id="temp_min_c" name="temp_min_c" placeholder="18">
+  </div>
+  <div class="field">
+    <label for="temp_max_c">Temp Max (C)</label>
+    <input type="number" step="0.1" id="temp_max_c" name="temp_max_c" placeholder="26">
+  </div>
+</div>
+<div class="row">
+  <div class="field">
+    <label for="water_low_cm">Water Low (cm)</label>
+    <input type="number" step="0.1" id="water_low_cm" name="water_low_cm" placeholder="30">
+    <span class="desc">Valve opens when distance exceeds this</span>
+  </div>
+  <div class="field">
+    <label for="water_full_cm">Water Full (cm)</label>
+    <input type="number" step="0.1" id="water_full_cm" name="water_full_cm" placeholder="10">
+    <span class="desc">Valve closes when distance reaches this</span>
+  </div>
+</div>
+</div>
+
+<div class="section">
+<h2>// Intervals &amp; Defaults</h2>
+<div class="row">
+  <div class="field">
+    <label for="sensor_interval">Sensor Interval (ms)</label>
+    <input type="number" id="sensor_interval" name="sensor_interval" placeholder="10000">
+    <span class="desc">How often to read sensors</span>
+  </div>
+  <div class="field">
+    <label for="fan_default_spd">Default Fan Speed (%)</label>
+    <input type="number" id="fan_default_spd" name="fan_default_spd" placeholder="50" min="0" max="100">
+    <span class="desc">Normal operating fan speed</span>
+  </div>
+</div>
+</div>
+
+<button type="submit">Save &amp; Reboot</button>
+</form>
+
+<form method="POST" action="/reset" style="margin-top:12px">
+  <button type="submit" class="btn-danger">Clear WiFi &amp; Reboot</button>
+</form>
+
+<div id="status"></div>
+
+<p class="version">GrowTent Controller v1.0.0</p>
+
+<script>
+function scanWifi(){
+  var btn=document.querySelector('.scan-btn');
+  var list=document.getElementById('networkList');
+  var datalist=document.getElementById('ssidList');
+  btn.textContent='Scanning...';
+  btn.disabled=true;
+  list.style.display='none';
+  list.innerHTML='';
+  datalist.innerHTML='';
+
+  fetch('/scan')
+    .then(function(r){return r.json()})
+    .then(function(data){
+      btn.textContent='Scan WiFi Networks';
+      btn.disabled=false;
+      if(!data.networks||data.networks.length===0){
+        list.innerHTML='<div class="net-item">No networks found</div>';
+        list.style.display='block';
+        return;
+      }
+      var seen={};
+      data.networks.forEach(function(n){
+        if(seen[n.ssid])return;
+        seen[n.ssid]=true;
+        var opt=document.createElement('option');
+        opt.value=n.ssid;
+        datalist.appendChild(opt);
+
+        var div=document.createElement('div');
+        div.className='net-item';
+        div.onclick=function(){
+          document.getElementById('wifi_ssid').value=n.ssid;
+          document.getElementById('wifi_pass').focus();
+        };
+        var nameSpan=document.createElement('span');
+        nameSpan.textContent=n.ssid;
+        div.appendChild(nameSpan);
+        var infoSpan=document.createElement('span');
+        var lock=n.secure?'[lock] ':'';
+        infoSpan.className='net-rssi';
+        infoSpan.textContent=lock+n.rssi+'dBm';
+        div.appendChild(infoSpan);
+        list.appendChild(div);
+      });
+      list.style.display='block';
+    })
+    .catch(function(e){
+      btn.textContent='Scan WiFi Networks';
+      btn.disabled=false;
+      list.innerHTML='<div class="net-item">Scan failed: '+e.message+'</div>';
+      list.style.display='block';
+    });
+}
+
+document.getElementById('configForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  var form=this;
+  var status=document.getElementById('status');
+  var formData=new FormData(form);
+
+  fetch('/save',{method:'POST',body:new URLSearchParams(formData)})
+    .then(function(r){
+      if(r.ok){
+        status.textContent='Device configured. Rebooting...';
+        status.style.display='block';
+        status.style.borderColor='#00ff41';
+        status.style.color='#00ff41';
+        form.querySelector('button[type=submit]').disabled=true;
+      } else {
+        throw new Error('Save failed (HTTP '+r.status+')');
+      }
+    })
+    .catch(function(e){
+      status.textContent='Error: '+e.message;
+      status.style.display='block';
+      status.style.borderColor='#ff4444';
+      status.style.color='#ff4444';
+    });
+});
+</script>
+
+</body>
+</html>)rawliteral";
+
+#endif // PORTAL_HTML_H

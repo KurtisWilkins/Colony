@@ -241,3 +241,232 @@ export function enableTestMode(deviceId) {
 export function disableTestMode(deviceId) {
   return request(`/api/control/${deviceId}/test_mode/off`, { method: 'POST' });
 }
+
+// ── Irrigation ───────────────────────────────────────────────────────────
+
+export function getIrrigationZones(deviceId) {
+  return request(`/api/irrigation/${deviceId}/zones`);
+}
+
+export function updateIrrigationZone(deviceId, zoneIndex, data) {
+  return request(`/api/irrigation/${deviceId}/zones/${zoneIndex}`, {
+    method: 'PUT', body: JSON.stringify(data),
+  });
+}
+
+export function openZone(deviceId, zoneIndex, runtime_s) {
+  return request(`/api/irrigation/${deviceId}/zones/${zoneIndex}/open`, {
+    method: 'POST', body: JSON.stringify({ runtime_s }),
+  });
+}
+
+export function closeZone(deviceId, zoneIndex) {
+  return request(`/api/irrigation/${deviceId}/zones/${zoneIndex}/close`, { method: 'POST' });
+}
+
+export function closeAllZones(deviceId) {
+  return request(`/api/irrigation/${deviceId}/close_all`, { method: 'POST' });
+}
+
+export function runIrrigationProgram(deviceId, zones, runtime_s) {
+  return request(`/api/irrigation/${deviceId}/run_program`, {
+    method: 'POST', body: JSON.stringify({ zones, runtime_s }),
+  });
+}
+
+export function getIrrigationSchedules(deviceId) {
+  return request(`/api/irrigation/${deviceId}/schedules`);
+}
+
+export function updateIrrigationSchedule(deviceId, zoneIndex, data) {
+  return request(`/api/irrigation/${deviceId}/schedules/${zoneIndex}`, {
+    method: 'PUT', body: JSON.stringify(data),
+  });
+}
+
+export function getSeasonalConfigs(deviceId) {
+  return request(`/api/irrigation/${deviceId}/seasonal`);
+}
+
+export function updateSeasonalConfig(deviceId, index, data) {
+  return request(`/api/irrigation/${deviceId}/seasonal/${index}`, {
+    method: 'PUT', body: JSON.stringify(data),
+  });
+}
+
+export function deleteSeasonalConfig(deviceId, index) {
+  return request(`/api/irrigation/${deviceId}/seasonal/${index}`, { method: 'DELETE' });
+}
+
+export function getIrrigationState(deviceId) {
+  return request(`/api/irrigation/${deviceId}/state`);
+}
+
+export function getZoneEvents(deviceId, params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/api/irrigation/${deviceId}/events${q ? '?' + q : ''}`);
+}
+
+export function getZoneRuntimeSummary(deviceId) {
+  return request(`/api/irrigation/${deviceId}/runtime_summary`);
+}
+
+export function pushWeatherData(deviceId, data) {
+  return request(`/api/irrigation/${deviceId}/weather`, {
+    method: 'POST', body: JSON.stringify(data),
+  });
+}
+
+export function getWeatherHistory(deviceId) {
+  return request(`/api/irrigation/${deviceId}/weather/history`);
+}
+
+// ── Climate Control ──────────────────────────────────────────────────────
+
+export function getClimateThresholds(deviceId) {
+  return request(`/api/climate/${deviceId}`);
+}
+export function updateClimateThresholds(deviceId, data) {
+  return request(`/api/climate/${deviceId}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+export function enableClimate(deviceId) {
+  return request(`/api/climate/${deviceId}/enable`, { method: 'POST' });
+}
+export function disableClimate(deviceId) {
+  return request(`/api/climate/${deviceId}/disable`, { method: 'POST' });
+}
+export function getClimateSessions(deviceId, params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/api/climate/${deviceId}/sessions${q ? '?' + q : ''}`);
+}
+export function getClimateSummary(deviceId) {
+  return request(`/api/climate/${deviceId}/summary`);
+}
+export function sendHeaterOn(deviceId) {
+  return request(`/api/control/${deviceId}/heater/on`, { method: 'POST' });
+}
+export function sendHeaterOff(deviceId) {
+  return request(`/api/control/${deviceId}/heater/off`, { method: 'POST' });
+}
+export function sendCoolingOn(deviceId) {
+  return request(`/api/control/${deviceId}/cooling/on`, { method: 'POST' });
+}
+export function sendCoolingOff(deviceId) {
+  return request(`/api/control/${deviceId}/cooling/off`, { method: 'POST' });
+}
+export function sendDehumidifierOn(deviceId) {
+  return request(`/api/control/${deviceId}/dehumidifier/on`, { method: 'POST' });
+}
+export function sendDehumidifierOff(deviceId) {
+  return request(`/api/control/${deviceId}/dehumidifier/off`, { method: 'POST' });
+}
+export function sendClimateAllOff(deviceId) {
+  return request(`/api/control/${deviceId}/climate/all_off`, { method: 'POST' });
+}
+
+// ── Security & User Management ───────────────────────────────────────────
+
+export function getUsers() { return request('/api/users'); }
+export function createUser(data) {
+  return request('/api/users', { method: 'POST', body: JSON.stringify(data) });
+}
+export function updateUser(userId, data) {
+  return request(`/api/users/${userId}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+export function deleteUser(userId) {
+  return request(`/api/users/${userId}`, { method: 'DELETE' });
+}
+export function resetUserPassword(userId) {
+  return request(`/api/users/${userId}/reset-password`, { method: 'POST' });
+}
+export function getUserDevices(userId) {
+  return request(`/api/users/${userId}/devices`);
+}
+export function assignUserDevice(userId, deviceId) {
+  return request(`/api/users/${userId}/devices`, {
+    method: 'POST', body: JSON.stringify({ device_id: deviceId }),
+  });
+}
+export function removeUserDevice(userId, deviceId) {
+  return request(`/api/users/${userId}/devices/${deviceId}`, { method: 'DELETE' });
+}
+export function getSecurityEvents(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/api/security/events${q ? '?' + q : ''}`);
+}
+export function generateDeviceCredentials(deviceId) {
+  return request(`/api/devices/${deviceId}/credentials/generate`, { method: 'POST' });
+}
+export function getDeviceCredentialStatus(deviceId) {
+  return request(`/api/devices/${deviceId}/credentials/status`);
+}
+export function rotateDeviceCredentials(deviceId) {
+  return request(`/api/devices/${deviceId}/credentials/rotate`, { method: 'POST' });
+}
+export function revokeDeviceCredentials(deviceId) {
+  return request(`/api/devices/${deviceId}/credentials/revoke`, { method: 'POST' });
+}
+export function changePassword(currentPassword, newPassword) {
+  return request('/auth/change-password', {
+    method: 'POST', body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+}
+
+// ── Mushroom Inventory ───────────────────────────────────────────────────
+
+export function getJars(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/api/inventory/jars${q ? '?' + q : ''}`);
+}
+export function getJar(jarId) { return request(`/api/inventory/jars/${jarId}`); }
+export function getJarByTag(tagId) { return request(`/api/inventory/jars/by-tag/${tagId}`); }
+export function createJar(data) {
+  return request('/api/inventory/jars', { method: 'POST', body: JSON.stringify(data) });
+}
+export function updateJar(jarId, data) {
+  return request(`/api/inventory/jars/${jarId}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+export function retireJar(jarId, data) {
+  return request(`/api/inventory/jars/${jarId}/retire`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function getBatches(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/api/inventory/batches${q ? '?' + q : ''}`);
+}
+export function getBatch(batchId) { return request(`/api/inventory/batches/${batchId}`); }
+export function createBatch(data) {
+  return request('/api/inventory/batches', { method: 'POST', body: JSON.stringify(data) });
+}
+export function addJarsToBatch(batchId, data) {
+  return request(`/api/inventory/batches/${batchId}/jars`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function logColonizationCheck(jarId, data) {
+  return request(`/api/inventory/jars/${jarId}/colonization-check`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function getColonizationHistory(jarId) {
+  return request(`/api/inventory/jars/${jarId}/colonization-history`);
+}
+export function reportContamination(jarId, data) {
+  return request(`/api/inventory/jars/${jarId}/contamination`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function moveJar(jarId, data) {
+  return request(`/api/inventory/jars/${jarId}/move`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function startFlush(jarId, data) {
+  return request(`/api/inventory/jars/${jarId}/flushes`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function recordHarvest(flushId, data) {
+  return request(`/api/inventory/flushes/${flushId}/harvest`, { method: 'POST', body: JSON.stringify(data) });
+}
+export function scanTag(data) {
+  return request('/api/inventory/scan', { method: 'POST', body: JSON.stringify(data) });
+}
+export function getInventoryLocations() { return request('/api/inventory/locations'); }
+export function getStrains() { return request('/api/inventory/strains'); }
+export function getRecipes() { return request('/api/inventory/recipes'); }
+export function getInventorySummary() { return request('/api/inventory/analytics/dashboard-summary'); }
+export function getYieldByFlush(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/api/inventory/analytics/yield-by-flush${q ? '?' + q : ''}`);
+}
+export function getContaminationRate() { return request('/api/inventory/analytics/contamination-rate'); }
