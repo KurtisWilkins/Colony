@@ -157,6 +157,11 @@ function IrrigationDashboard() {
   const [confirms, setConfirms] = useState({});
   const [programRuntime, setProgramRuntime] = useState(300);
   const [editingZone, setEditingZone] = useState(null);
+  // Optimistic zone state: {zIdx: true|false|null}. Reflects the user's
+  // last click immediately so the Toggle doesn't snap back while waiting
+  // for telemetry to confirm. Cleared after telemetry catches up or 8s.
+  const [zoneOverrides, setZoneOverrides] = useState({});
+  const [recentlyChanged, setRecentlyChanged] = useState({});
 
   // Test mode reflects the device's current state from telemetry/status.
   // Fall back to local state while a toggle is in-flight.
@@ -475,12 +480,23 @@ function IrrigationDashboard() {
             const zIdx = zone.zone_index ?? idx;
             const isActive = activeZone && activeZone.zone_index === zIdx;
             const isQueued = queuedZones.some((q) => q.zone_index === zIdx);
-            const isOpen = zone.open || zone.state === 'open' || zone.is_open || isActive;
+            const telemetryOpen = Boolean(zone.open || zone.state === 'open' || zone.is_open || isActive);
+            // Use optimistic state if the user just toggled, else telemetry
+            const override = zoneOverrides[zIdx];
+            const isOpen = override !== undefined ? override : telemetryOpen;
             const zoneRuntime = zone.runtime_s || (testMode ? 10 : 300);
             const busy = btnDisabled(`toggle-${zIdx}`);
+            const isFlashing = recentlyChanged[zIdx];
 
             const onToggle = async (next) => {
               if (busy) return;
+              // Immediate visual update so the toggle slides right away
+              setZoneOverrides((prev) => ({ ...prev, [zIdx]: next }));
+              setRecentlyChanged((prev) => ({ ...prev, [zIdx]: next ? 'opening' : 'closing' }));
+              setTimeout(() => setRecentlyChanged((prev) => {
+                const { [zIdx]: _, ...rest } = prev;
+                return rest;
+              }), 900);
               setCooldowns((prev) => ({ ...prev, [`toggle-${zIdx}`]: true }));
               try {
                 if (next) {
@@ -488,8 +504,16 @@ function IrrigationDashboard() {
                 } else {
                   await closeZone(deviceId, zIdx);
                 }
+              } catch {
+                // Revert override on failure
+                setZoneOverrides((prev) => ({ ...prev, [zIdx]: !next }));
               } finally {
                 setTimeout(() => setCooldowns((prev) => ({ ...prev, [`toggle-${zIdx}`]: false })), 1500);
+                // Clear override after telemetry has had a chance to catch up (3 poll cycles)
+                setTimeout(() => setZoneOverrides((prev) => {
+                  const { [zIdx]: _, ...rest } = prev;
+                  return rest;
+                }), 8000);
               }
             };
 
@@ -498,9 +522,25 @@ function IrrigationDashboard() {
                 key={zIdx}
                 style={{
                   ...styles.zoneCard,
-                  borderColor: zoneBorderColor(zone, zIdx),
-                  boxShadow: zoneGlow(zone, zIdx),
+                  borderColor: isFlashing === 'opening'
+                    ? 'var(--color-phosphor-bright)'
+                    : isFlashing === 'closing'
+                    ? 'var(--color-red-alert)'
+                    : isOpen
+                    ? 'var(--color-phosphor-primary)'
+                    : zoneBorderColor(zone, zIdx),
+                  boxShadow: isFlashing === 'opening'
+                    ? '0 0 18px rgba(0,255,65,0.7)'
+                    : isFlashing === 'closing'
+                    ? '0 0 18px rgba(255,49,49,0.5)'
+                    : isOpen
+                    ? '0 0 12px rgba(0,255,65,0.4)'
+                    : zoneGlow(zone, zIdx),
+                  background: isOpen
+                    ? 'linear-gradient(180deg, var(--color-phosphor-glow) 0%, var(--color-bg-surface) 100%)'
+                    : 'var(--color-bg-surface)',
                   opacity: zone.enabled === false ? 0.55 : 1,
+                  transition: 'all var(--transition-slow)',
                 }}
               >
                 <div style={styles.zoneHeader}>

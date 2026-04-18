@@ -21,7 +21,7 @@ function Toggle({ checked = false, onChange, label }) {
           background: checked ? 'var(--color-phosphor-glow)' : 'var(--color-bg-input)',
           cursor: 'pointer',
           position: 'relative',
-          transition: 'all var(--transition-base)',
+          transition: 'left var(--transition-slow), background var(--transition-base), box-shadow var(--transition-base)',
           boxShadow: checked ? 'var(--glow-sm)' : 'none',
           padding: 0,
         }}
@@ -35,7 +35,7 @@ function Toggle({ checked = false, onChange, label }) {
             height: '18px',
             borderRadius: '50%',
             background: checked ? 'var(--color-phosphor-primary)' : 'var(--color-phosphor-ghost)',
-            transition: 'all var(--transition-base)',
+            transition: 'left var(--transition-slow), background var(--transition-base), box-shadow var(--transition-base)',
             boxShadow: checked ? 'var(--glow-sm)' : 'none',
           }}
         />
