@@ -1,13 +1,13 @@
 """
 Blueprint for device CRUD operations.
 Provides endpoints to list, register, retrieve, update, and delete IoT devices.
+Includes auto-discovery endpoints for pending (unclaimed) devices.
 """
 
 from flask import Blueprint, request, jsonify
 from models import db, Device
 from routes.auth import login_required
 
-# Blueprint registered under /api/devices in app.py
 devices_bp = Blueprint("devices", __name__)
 
 
@@ -18,15 +18,15 @@ devices_bp = Blueprint("devices", __name__)
 @login_required
 def list_devices():
     """
-    Return a list of all registered devices.
-    Supports optional query parameters for filtering:
-      ?facility=   - filter by facility name
-      ?building=   - filter by building name
-      ?unit=       - filter by unit name
+    Return a list of registered devices (status='active' by default).
+    Pass ?status=all to include pending, or ?status=pending for only pending.
     """
     query = Device.query
 
-    # Apply optional filters from query string
+    status_filter = request.args.get("status", "active")
+    if status_filter != "all":
+        query = query.filter(Device.status == status_filter)
+
     facility = request.args.get("facility")
     if facility:
         query = query.filter(Device.facility == facility)
@@ -41,6 +41,63 @@ def list_devices():
 
     devices = query.order_by(Device.registered_at.desc()).all()
     return jsonify([d.to_dict() for d in devices]), 200
+
+
+# ---------------------------------------------------------------------------
+# GET /api/devices/pending  -- list auto-discovered unclaimed devices
+# ---------------------------------------------------------------------------
+@devices_bp.route("/api/devices/pending", methods=["GET"])
+@login_required
+def list_pending_devices():
+    """Return all devices with status='pending' (auto-discovered, unclaimed)."""
+    devices = Device.query.filter_by(status="pending").order_by(
+        Device.last_seen.desc()
+    ).all()
+    return jsonify([d.to_dict() for d in devices]), 200
+
+
+# ---------------------------------------------------------------------------
+# POST /api/devices/<device_id>/claim  -- promote pending to active
+# ---------------------------------------------------------------------------
+@devices_bp.route("/api/devices/<device_id>/claim", methods=["POST"])
+@login_required
+def claim_device(device_id):
+    """
+    Claim a pending device: set status to 'active' and optionally update
+    device_type via JSON body {"device_type": "irrigation"}.
+    """
+    device = Device.query.get(device_id)
+    if not device:
+        return jsonify({"error": "Device not found"}), 404
+    if device.status != "pending":
+        return jsonify({"error": "Device is already active"}), 409
+
+    data = request.get_json(silent=True) or {}
+    if data.get("device_type"):
+        device.device_type = data["device_type"]
+
+    device.status = "active"
+    db.session.commit()
+
+    return jsonify(device.to_dict()), 200
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/devices/<device_id>/dismiss  -- remove a pending device
+# ---------------------------------------------------------------------------
+@devices_bp.route("/api/devices/<device_id>/dismiss", methods=["DELETE"])
+@login_required
+def dismiss_device(device_id):
+    """Remove a pending device (ignores it). Only works on pending devices."""
+    device = Device.query.get(device_id)
+    if not device:
+        return jsonify({"error": "Device not found"}), 404
+    if device.status != "pending":
+        return jsonify({"error": "Cannot dismiss an active device"}), 409
+
+    db.session.delete(device)
+    db.session.commit()
+    return "", 204
 
 
 # ---------------------------------------------------------------------------

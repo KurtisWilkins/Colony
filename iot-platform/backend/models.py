@@ -146,6 +146,9 @@ class Device(db.Model):
     # Device metadata
     device_type = db.Column(db.String(64), nullable=False)
 
+    # Device status: 'active' (registered), 'pending' (auto-discovered, unclaimed)
+    status = db.Column(db.String(16), nullable=False, default="active")
+
     # Timestamps and status
     registered_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
     last_seen = db.Column(db.DateTime, nullable=True)
@@ -173,6 +176,7 @@ class Device(db.Model):
             "unit": self.unit,
             "device_name": self.device_name,
             "device_type": self.device_type,
+            "status": self.status,
             "facility_id": str(self.facility_id) if self.facility_id else None,
             "building_id": str(self.building_id) if self.building_id else None,
             "unit_id": str(self.unit_id) if self.unit_id else None,

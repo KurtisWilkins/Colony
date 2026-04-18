@@ -21,7 +21,7 @@ def get_full_hierarchy():
     Return the complete facility -> building -> unit -> device hierarchy
     as a nested JSON structure.
     """
-    devices = Device.query.order_by(
+    devices = Device.query.filter_by(status="active").order_by(
         Device.facility, Device.building, Device.unit, Device.device_name
     ).all()
 
@@ -69,7 +69,7 @@ def get_buildings(facility):
     # Query distinct building names for this facility
     rows = (
         db.session.query(Device.building)
-        .filter(Device.facility == facility)
+        .filter(Device.facility == facility, Device.status == "active")
         .distinct()
         .order_by(Device.building)
         .all()
@@ -91,7 +91,7 @@ def get_units(facility, building):
     """Return all distinct units within the specified facility and building."""
     rows = (
         db.session.query(Device.unit)
-        .filter(Device.facility == facility, Device.building == building)
+        .filter(Device.facility == facility, Device.building == building, Device.status == "active")
         .distinct()
         .order_by(Device.unit)
         .all()
@@ -115,7 +115,7 @@ def get_devices_in_unit(facility, building, unit):
     """Return all devices within the specified facility, building, and unit."""
     devices = (
         Device.query
-        .filter_by(facility=facility, building=building, unit=unit)
+        .filter_by(facility=facility, building=building, unit=unit, status="active")
         .order_by(Device.device_name)
         .all()
     )

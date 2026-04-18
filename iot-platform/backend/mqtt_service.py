@@ -11,6 +11,7 @@ import json
 import logging
 import threading
 import time
+from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 
 import paho.mqtt.client as mqtt
@@ -29,6 +30,10 @@ OFFLINE_THRESHOLD_MINUTES = 5
 
 # How often the offline-checker runs (in seconds)
 OFFLINE_CHECK_INTERVAL = 60
+
+# Rate-limit auto-creation of pending devices: one insert per topic per this many seconds
+PENDING_DEVICE_COOLDOWN = 60
+_pending_device_last_seen = defaultdict(float)
 
 
 # ---------------------------------------------------------------------------
@@ -109,12 +114,11 @@ def on_message(client, userdata, msg):
 # Message handlers
 # ---------------------------------------------------------------------------
 
-def _handle_telemetry(db, Device, Telemetry, parsed, raw_payload):
+def _find_or_create_pending_device(db, Device, parsed):
     """
-    Process a telemetry message:
-    1. Look up the device by its location fields.
-    2. If found, insert a new Telemetry record with the JSON payload.
-    3. If device not found, log a warning but don't crash.
+    Look up a device by its 4-tuple. If not found, auto-create it with
+    status='pending' so it shows up as an unclaimed device in the UI.
+    Rate-limited to avoid flooding the DB from rogue MQTT publishers.
     """
     device = Device.query.filter_by(
         facility=parsed["facility"],
@@ -123,11 +127,45 @@ def _handle_telemetry(db, Device, Telemetry, parsed, raw_payload):
         device_name=parsed["device_name"],
     ).first()
 
+    if device:
+        return device
+
+    topic_key = "{facility}/{building}/{unit}/{device_name}".format(**parsed)
+    now = time.time()
+    if now - _pending_device_last_seen[topic_key] < PENDING_DEVICE_COOLDOWN:
+        return None
+    _pending_device_last_seen[topic_key] = now
+
+    device = Device(
+        facility=parsed["facility"],
+        building=parsed["building"],
+        unit=parsed["unit"],
+        device_name=parsed["device_name"],
+        device_type="unknown",
+        status="pending",
+        is_online=True,
+        last_seen=datetime.now(timezone.utc),
+    )
+    db.session.add(device)
+    db.session.commit()
+
+    logger.info(
+        "Auto-discovered pending device: %s/%s/%s/%s (id=%s)",
+        parsed["facility"], parsed["building"], parsed["unit"],
+        parsed["device_name"], device.id,
+    )
+    return device
+
+
+def _handle_telemetry(db, Device, Telemetry, parsed, raw_payload):
+    """
+    Process a telemetry message:
+    1. Look up the device by its location fields (or auto-create as pending).
+    2. If found, insert a new Telemetry record with the JSON payload.
+    """
+    device = _find_or_create_pending_device(db, Device, parsed)
+
     if not device:
-        logger.warning(
-            "Telemetry received for unknown device: %s/%s/%s/%s",
-            parsed["facility"], parsed["building"], parsed["unit"], parsed["device_name"],
-        )
         return
 
     # Parse the payload as JSON; store raw string if parsing fails
@@ -162,23 +200,13 @@ def _handle_status(db, Device, parsed, raw_payload):
     """
     Process a status message:
     Update the device's last_seen timestamp and mark it as online.
-    If device not found, log a warning.
+    Auto-creates a pending device if not found.
     """
-    device = Device.query.filter_by(
-        facility=parsed["facility"],
-        building=parsed["building"],
-        unit=parsed["unit"],
-        device_name=parsed["device_name"],
-    ).first()
+    device = _find_or_create_pending_device(db, Device, parsed)
 
     if not device:
-        logger.warning(
-            "Status received for unknown device: %s/%s/%s/%s",
-            parsed["facility"], parsed["building"], parsed["unit"], parsed["device_name"],
-        )
         return
 
-    # Update the device status fields
     device.last_seen = datetime.now(timezone.utc)
     device.is_online = True
     db.session.commit()
@@ -214,6 +242,7 @@ def _offline_checker():
                 # Find devices that are marked online but haven't been seen recently
                 stale_devices = Device.query.filter(
                     Device.is_online == True,  # noqa: E712 -- SQLAlchemy requires == for filters
+                    Device.status == "active",
                     Device.last_seen < threshold,
                 ).all()
 

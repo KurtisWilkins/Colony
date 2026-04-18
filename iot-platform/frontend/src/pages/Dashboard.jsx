@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { StatCard, Card, Loader, AlertBanner } from '../components/ui';
+import PendingDevices from '../components/PendingDevices';
 
 function Dashboard() {
   const [status, setStatus] = useState(null);
@@ -53,6 +54,7 @@ function Dashboard() {
   const offlineCount = status?.offline_devices ?? 0;
   const totalDevices = onlineCount + offlineCount;
   const totalTelemetry = status?.total_telemetry_records ?? 0;
+  const pendingCount = status?.pending_devices ?? 0;
 
   return (
     <div>
@@ -69,7 +71,10 @@ function Dashboard() {
         <StatCard value={onlineCount} label="ONLINE" trend={onlineCount > 0 ? 'up' : null} />
         <StatCard value={offlineCount} label="OFFLINE" trend={offlineCount > 0 ? 'down' : null} />
         <StatCard value={totalTelemetry.toLocaleString()} label="TELEMETRY RECORDS" />
+        {pendingCount > 0 && <StatCard value={pendingCount} label="PENDING" trend="up" />}
       </div>
+
+      <PendingDevices />
 
       <Card title="ALERTS">
         <div style={styles.emptyState}>
