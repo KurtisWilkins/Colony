@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Card, Badge, AlertBanner, Loader, ProgressBar, Toggle } from '../../components/ui';
+import { Button, Card, Badge, AlertBanner, Loader, ProgressBar, Toggle, Modal, Input } from '../../components/ui';
 import DeviceSelector from '../../components/DeviceSelector';
 import {
   getIrrigationState,
@@ -10,6 +10,7 @@ import {
   closeAllZones,
   runIrrigationProgram,
   getZoneEvents,
+  updateIrrigationZone,
   setIrrigationTestMode,
   irrigationReadNow,
   irrigationStopProgram,
@@ -155,6 +156,7 @@ function IrrigationDashboard() {
   const [cooldowns, setCooldowns] = useState({});
   const [confirms, setConfirms] = useState({});
   const [programRuntime, setProgramRuntime] = useState(300);
+  const [editingZone, setEditingZone] = useState(null);
 
   // Test mode reflects the device's current state from telemetry/status.
   // Fall back to local state while a toggle is in-flight.
@@ -463,72 +465,115 @@ function IrrigationDashboard() {
         </div>
       </Card>
 
-      {/* ═══ 16-ZONE GRID ═══ */}
-      <div style={styles.zoneGrid}>
-        {zoneGrid.map((zone, idx) => {
-          const zIdx = zone.zone_index ?? idx;
-          const isActive = activeZone && activeZone.zone_index === zIdx;
-          const isQueued = queuedZones.some((q) => q.zone_index === zIdx);
-          const isOpen = zone.open || zone.state === 'open' || isActive;
-          const runtime = testMode ? 10 : 120;
+      {/* ═══ 16-ZONE TOGGLE GRID ═══ */}
+      <Card title="MANUAL ZONE CONTROL" style={{ marginBottom: 'var(--space-4)' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-3)' }}>
+          Flip a toggle to open/close a zone. Tap the edit icon to change the zone's name, runtime, or group.
+        </div>
+        <div style={styles.zoneGrid}>
+          {zoneGrid.map((zone, idx) => {
+            const zIdx = zone.zone_index ?? idx;
+            const isActive = activeZone && activeZone.zone_index === zIdx;
+            const isQueued = queuedZones.some((q) => q.zone_index === zIdx);
+            const isOpen = zone.open || zone.state === 'open' || zone.is_open || isActive;
+            const zoneRuntime = zone.runtime_s || (testMode ? 10 : 300);
+            const busy = btnDisabled(`toggle-${zIdx}`);
 
-          return (
-            <div
-              key={zIdx}
-              style={{
-                ...styles.zoneCard,
-                borderColor: zoneBorderColor(zone, zIdx),
-                boxShadow: zoneGlow(zone, zIdx),
-                opacity: zone.enabled ? 1 : 0.5,
-              }}
-            >
-              <div style={styles.zoneHeader}>
-                <span style={styles.zoneNumber}>Z{zIdx + 1}</span>
-                <Badge variant={isOpen ? 'online' : 'offline'}>
-                  {isOpen ? 'OPEN' : 'CLOSED'}
-                </Badge>
-              </div>
-              <div style={styles.zoneName}>
-                {zone.name || `Zone ${zIdx + 1}`}
-              </div>
-              <div style={styles.zoneStatus}>
-                {!zone.enabled && (
-                  <span style={styles.disabledTag}>DISABLED</span>
-                )}
-                {isQueued && (
-                  <span style={styles.queuedTag}>QUEUED</span>
-                )}
-              </div>
-              <div style={styles.zoneLastRun}>
-                LAST: {formatRelative(zone.last_run || zone.last_run_at)}
-              </div>
-              <div style={styles.zoneActions}>
-                {isOpen ? (
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    loading={btnLoading(`close-${zIdx}`)}
-                    disabled={btnDisabled(`close-${zIdx}`)}
-                    onClick={withCooldown(`close-${zIdx}`, () => closeZone(deviceId, zIdx))}
+            const onToggle = async (next) => {
+              if (busy) return;
+              setCooldowns((prev) => ({ ...prev, [`toggle-${zIdx}`]: true }));
+              try {
+                if (next) {
+                  await openZone(deviceId, zIdx, zoneRuntime);
+                } else {
+                  await closeZone(deviceId, zIdx);
+                }
+              } finally {
+                setTimeout(() => setCooldowns((prev) => ({ ...prev, [`toggle-${zIdx}`]: false })), 1500);
+              }
+            };
+
+            return (
+              <div
+                key={zIdx}
+                style={{
+                  ...styles.zoneCard,
+                  borderColor: zoneBorderColor(zone, zIdx),
+                  boxShadow: zoneGlow(zone, zIdx),
+                  opacity: zone.enabled === false ? 0.55 : 1,
+                }}
+              >
+                <div style={styles.zoneHeader}>
+                  <span style={styles.zoneNumber}>Z{zIdx + 1}</span>
+                  <button
+                    onClick={() => setEditingZone({ ...zone, zone_index: zIdx })}
+                    title="Edit zone config"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--color-phosphor-dim)',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 'var(--text-base)',
+                      padding: 0,
+                      lineHeight: 1,
+                    }}
                   >
-                    {btnLabel(`close-${zIdx}`, 'CLOSE')}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    loading={btnLoading(`open-${zIdx}`)}
-                    disabled={btnDisabled(`open-${zIdx}`) || !zone.enabled}
-                    onClick={withCooldown(`open-${zIdx}`, () => openZone(deviceId, zIdx, runtime))}
-                  >
-                    {btnLabel(`open-${zIdx}`, 'OPEN')}
-                  </Button>
-                )}
+                    ⚙
+                  </button>
+                </div>
+                <div style={styles.zoneName}>
+                  {zone.name || `Zone ${zIdx + 1}`}
+                </div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-2)' }}>
+                  RUNTIME: {formatDuration(zoneRuntime)}
+                  {zone.zone_group ? ` · GRP: ${zone.zone_group}` : ''}
+                  {zone.gpio_pin != null ? ` · GPIO ${zone.gpio_pin}` : ''}
+                </div>
+                <div style={styles.zoneStatus}>
+                  {zone.enabled === false && (
+                    <span style={styles.disabledTag}>DISABLED</span>
+                  )}
+                  {isQueued && (
+                    <span style={styles.queuedTag}>QUEUED</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--space-2)' }}>
+                  <Toggle
+                    checked={Boolean(isOpen)}
+                    onChange={onToggle}
+                  />
+                  <Badge variant={isOpen ? 'online' : 'offline'}>
+                    {isOpen ? 'OPEN' : 'CLOSED'}
+                  </Badge>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* ═══ ZONE CONFIG MODAL ═══ */}
+      <Modal
+        open={!!editingZone}
+        onClose={() => setEditingZone(null)}
+        title={editingZone ? `CONFIGURE ZONE ${((editingZone.zone_index ?? 0) + 1)}` : 'CONFIGURE ZONE'}
+      >
+        {editingZone && (
+          <ZoneConfigForm
+            zone={editingZone}
+            onCancel={() => setEditingZone(null)}
+            onSave={async (updated) => {
+              try {
+                await updateIrrigationZone(deviceId, editingZone.zone_index, updated);
+                setEditingZone(null);
+              } catch (e) {
+                alert('Failed to save zone: ' + (e.message || e));
+              }
+            }}
+          />
+        )}
+      </Modal>
 
       {/* ═══ RECENT ACTIVITY LOG ═══ */}
       <Card title="Recent Activity" style={{ marginTop: 'var(--space-4)' }}>
@@ -806,5 +851,67 @@ const styles = {
     textAlign: 'right',
   },
 };
+
+// ── Zone config form used inside the edit modal ──────────────────────────
+function ZoneConfigForm({ zone, onSave, onCancel }) {
+  const [name, setName] = useState(zone.name || '');
+  const [runtimeS, setRuntimeS] = useState(zone.runtime_s ?? 300);
+  const [enabled, setEnabled] = useState(zone.enabled !== false);
+  const [group, setGroup] = useState(zone.zone_group ?? '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        name: name.trim() || `Zone ${(zone.zone_index ?? 0) + 1}`,
+        runtime_s: Math.max(1, Math.min(3600, Number(runtimeS) || 300)),
+        enabled: Boolean(enabled),
+        zone_group: group === '' ? null : String(group),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div>
+      <Input
+        label="ZONE NAME"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder={`Zone ${(zone.zone_index ?? 0) + 1}`}
+        maxLength={100}
+      />
+      <Input
+        label="RUNTIME (SECONDS)"
+        type="number"
+        min={1}
+        max={3600}
+        value={runtimeS}
+        onChange={(e) => setRuntimeS(e.target.value)}
+      />
+      <Input
+        label="GROUP (NUMERIC, OPTIONAL)"
+        type="number"
+        min={0}
+        max={15}
+        value={group}
+        onChange={(e) => setGroup(e.target.value)}
+        placeholder="0"
+      />
+      <div style={{ margin: 'var(--space-3) 0' }}>
+        <Toggle checked={enabled} onChange={setEnabled} label="ENABLED" />
+      </div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', marginBottom: 'var(--space-3)' }}>
+        Saving pushes the config to the ESP32 and persists it in the device's NVS.
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+        <Button variant="secondary" size="sm" onClick={onCancel} disabled={saving}>CANCEL</Button>
+        <Button variant="primary" size="sm" onClick={handleSave} loading={saving}>SAVE</Button>
+      </div>
+    </div>
+  );
+}
 
 export default IrrigationDashboard;

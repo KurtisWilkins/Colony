@@ -165,6 +165,52 @@ def update_zones(device_id):
     return jsonify([z.to_dict() for z in results]), 200
 
 
+@irrigation_bp.route("/api/irrigation/<device_id>/zones/<int:zone_index>", methods=["PUT"])
+@login_required
+def update_single_zone(device_id, zone_index):
+    """
+    Update a single zone's configuration AND push configure_zone to the
+    firmware so the device applies the name/runtime/enabled/group in NVS.
+    """
+    device, err = _get_device_or_404(device_id)
+    if err:
+        return err
+
+    if zone_index < 0 or zone_index > 15:
+        return jsonify({"error": "zone_index must be between 0 and 15"}), 400
+
+    data = request.get_json(silent=True) or {}
+
+    zone = IrrigationZone.query.filter_by(
+        device_id=device.id, zone_index=zone_index
+    ).first()
+    if not zone:
+        zone = IrrigationZone(device_id=device.id, zone_index=zone_index)
+        db.session.add(zone)
+
+    for field in ("name", "enabled", "runtime_s", "zone_group", "gpio_pin"):
+        if field in data:
+            setattr(zone, field, data[field])
+
+    db.session.commit()
+
+    # Push to firmware so NVS gets updated. configure_zone reads from payload
+    # nested object AND top-level keys; _publish_command emits both.
+    cfg = {"zone_index": zone_index}
+    if "name" in data:      cfg["name"] = data["name"]
+    if "runtime_s" in data: cfg["runtime_s"] = int(data["runtime_s"])
+    if "enabled" in data:   cfg["enabled"] = bool(data["enabled"])
+    if "zone_group" in data:
+        try:
+            cfg["group"] = int(data["zone_group"])
+        except (ValueError, TypeError):
+            pass  # firmware expects int; skip non-numeric groups
+
+    _publish_command(device, "configure_zone", cfg)
+
+    return jsonify(zone.to_dict()), 200
+
+
 # =========================================================================
 #  ZONE CONTROL (open / close / close_all)
 # =========================================================================
