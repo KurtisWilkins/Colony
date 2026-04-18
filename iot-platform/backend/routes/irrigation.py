@@ -41,13 +41,30 @@ def _publish_command(device, command_type, payload=None):
     """
     Build an MQTT message, publish it to the device's command topic,
     and persist a Command row.  Returns the Command object.
+
+    Translates backend command_type names into the names the irrigation
+    firmware expects, and flattens payload keys to top-level so the
+    firmware's top-level doc[...] reads find them.
     """
     if payload is None:
         payload = {}
 
+    # Map backend-style command names to firmware-expected names
+    FIRMWARE_COMMAND_MAP = {
+        "zone_open": "open_zone",
+        "zone_close": "close_zone",
+        "zone_close_all": "close_all",
+    }
+    # Map backend payload keys to firmware-expected top-level keys
+    PAYLOAD_KEY_MAP = {
+        "zone_index": "zone",
+    }
+
+    firmware_command = FIRMWARE_COMMAND_MAP.get(command_type, command_type)
+
     command_id = str(uuid.uuid4())
 
-    # Persist in the database
+    # Persist in the database (keep backend-style name for our records)
     cmd = Command(
         device_id=device.id,
         command_type=command_type,
@@ -56,17 +73,23 @@ def _publish_command(device, command_type, payload=None):
     db.session.add(cmd)
     db.session.commit()
 
-    # MQTT topic: {facility}/{building}/{unit}/{device_name}/command
     topic = (
         f"{device.facility}/{device.building}/{device.unit}/"
         f"{device.device_name}/command"
     )
 
-    mqtt_message = json.dumps({
+    # Build the MQTT message: firmware expects params at top level, so
+    # flatten payload with key translation. Keep "payload" nested too for
+    # any commands that also read from there.
+    message = {
         "command_id": command_id,
-        "command": command_type,
+        "command": firmware_command,
         "payload": payload,
-    })
+    }
+    for k, v in payload.items():
+        message[PAYLOAD_KEY_MAP.get(k, k)] = v
+
+    mqtt_message = json.dumps(message)
 
     try:
         mqtt_publish.single(
@@ -75,7 +98,7 @@ def _publish_command(device, command_type, payload=None):
             hostname=config.MQTT_BROKER_HOST,
             port=config.MQTT_BROKER_PORT,
         )
-        logger.info("Published command %s to MQTT topic %s", command_id, topic)
+        logger.info("Published command %s (%s) to MQTT topic %s", command_id, firmware_command, topic)
     except Exception as exc:
         logger.error("Failed to publish command to MQTT: %s", exc)
 
@@ -754,3 +777,76 @@ def get_irrigation_state(device_id):
         "latest_weather": latest_weather.to_dict() if latest_weather else None,
         "latest_telemetry": latest_telemetry.to_dict() if latest_telemetry else None,
     }), 200
+
+
+# =========================================================================
+#  DEVICE CONTROLS (test mode, read now, stop, reboot, factory reset)
+# =========================================================================
+
+@irrigation_bp.route("/api/irrigation/<device_id>/test_mode", methods=["POST"])
+@login_required
+def set_test_mode(device_id):
+    """Enable or disable test mode on the irrigation controller."""
+    device, err = _get_device_or_404(device_id)
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    if "enabled" not in data:
+        return jsonify({"error": "Missing required field: enabled (bool)"}), 400
+
+    enabled = bool(data["enabled"])
+    cmd = _publish_command(device, "set_test_mode", {"enabled": enabled})
+    return jsonify({"success": True, "enabled": enabled, "command": cmd.to_dict()}), 201
+
+
+@irrigation_bp.route("/api/irrigation/<device_id>/read_now", methods=["POST"])
+@login_required
+def read_now(device_id):
+    """Force the device to publish a fresh telemetry snapshot."""
+    device, err = _get_device_or_404(device_id)
+    if err:
+        return err
+
+    cmd = _publish_command(device, "read_now", {})
+    return jsonify({"success": True, "command": cmd.to_dict()}), 201
+
+
+@irrigation_bp.route("/api/irrigation/<device_id>/stop_program", methods=["POST"])
+@login_required
+def stop_program(device_id):
+    """Stop the currently running program / queue on the device."""
+    device, err = _get_device_or_404(device_id)
+    if err:
+        return err
+
+    cmd = _publish_command(device, "stop_program", {})
+    return jsonify({"success": True, "command": cmd.to_dict()}), 201
+
+
+@irrigation_bp.route("/api/irrigation/<device_id>/reboot", methods=["POST"])
+@login_required
+def reboot_device(device_id):
+    """Reboot the irrigation controller."""
+    device, err = _get_device_or_404(device_id)
+    if err:
+        return err
+
+    cmd = _publish_command(device, "reboot", {})
+    return jsonify({"success": True, "command": cmd.to_dict()}), 201
+
+
+@irrigation_bp.route("/api/irrigation/<device_id>/factory_reset", methods=["POST"])
+@login_required
+def factory_reset(device_id):
+    """Factory reset the irrigation controller (wipes all stored config)."""
+    device, err = _get_device_or_404(device_id)
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    if data.get("confirm") != "FACTORY_RESET":
+        return jsonify({"error": "Must send confirm='FACTORY_RESET' to proceed"}), 400
+
+    cmd = _publish_command(device, "factory_reset", {})
+    return jsonify({"success": True, "command": cmd.to_dict()}), 201

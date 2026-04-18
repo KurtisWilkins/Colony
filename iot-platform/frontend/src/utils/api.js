@@ -321,6 +321,30 @@ export function getWeatherHistory(deviceId) {
   return request(`/api/irrigation/${deviceId}/weather/history`);
 }
 
+export function setIrrigationTestMode(deviceId, enabled) {
+  return request(`/api/irrigation/${deviceId}/test_mode`, {
+    method: 'POST', body: JSON.stringify({ enabled }),
+  });
+}
+
+export function irrigationReadNow(deviceId) {
+  return request(`/api/irrigation/${deviceId}/read_now`, { method: 'POST' });
+}
+
+export function irrigationStopProgram(deviceId) {
+  return request(`/api/irrigation/${deviceId}/stop_program`, { method: 'POST' });
+}
+
+export function irrigationReboot(deviceId) {
+  return request(`/api/irrigation/${deviceId}/reboot`, { method: 'POST' });
+}
+
+export function irrigationFactoryReset(deviceId) {
+  return request(`/api/irrigation/${deviceId}/factory_reset`, {
+    method: 'POST', body: JSON.stringify({ confirm: 'FACTORY_RESET' }),
+  });
+}
+
 // ── Climate Control ──────────────────────────────────────────────────────
 
 export function getClimateThresholds(deviceId) {

@@ -10,6 +10,11 @@ import {
   closeAllZones,
   runIrrigationProgram,
   getZoneEvents,
+  setIrrigationTestMode,
+  irrigationReadNow,
+  irrigationStopProgram,
+  irrigationReboot,
+  irrigationFactoryReset,
 } from '../../utils/api';
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -149,8 +154,27 @@ function IrrigationDashboard() {
   // Cooldown/confirm state for buttons
   const [cooldowns, setCooldowns] = useState({});
   const [confirms, setConfirms] = useState({});
-  const [testMode, setTestMode] = useState(false);
   const [programRuntime, setProgramRuntime] = useState(300);
+
+  // Test mode reflects the device's current state from telemetry/status.
+  // Fall back to local state while a toggle is in-flight.
+  const deviceTestMode = Boolean(
+    irState?.test_mode ??
+    irState?.latest_telemetry?.payload?.test_mode ??
+    false
+  );
+  const [testModeOverride, setTestModeOverride] = useState(null);
+  const testMode = testModeOverride !== null ? testModeOverride : deviceTestMode;
+
+  const handleTestModeToggle = async (enabled) => {
+    setTestModeOverride(enabled);
+    try {
+      await setIrrigationTestMode(deviceId, enabled);
+      setTimeout(() => setTestModeOverride(null), 5000);
+    } catch {
+      setTestModeOverride(null);
+    }
+  };
 
   // Active zone from state
   const activeZone = irState?.active_zone || null;
@@ -385,11 +409,59 @@ function IrrigationDashboard() {
         <div style={{ marginLeft: 'auto' }}>
           <Toggle
             checked={testMode}
-            onChange={setTestMode}
+            onChange={handleTestModeToggle}
             label="TEST MODE"
           />
         </div>
       </div>
+
+      {/* ═══ DEVICE CONTROLS ═══ */}
+      <Card title="DEVICE CONTROLS" style={{ marginBottom: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={btnLoading('readNow')}
+            disabled={btnDisabled('readNow')}
+            onClick={withCooldown('readNow', () => irrigationReadNow(deviceId))}
+          >
+            {btnLabel('readNow', 'READ NOW')}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={btnLoading('stopProgram')}
+            disabled={btnDisabled('stopProgram')}
+            onClick={withCooldown('stopProgram', () => irrigationStopProgram(deviceId))}
+          >
+            {btnLabel('stopProgram', 'STOP PROGRAM')}
+          </Button>
+          <Button
+            variant="amber"
+            size="sm"
+            loading={btnLoading('reboot')}
+            disabled={btnDisabled('reboot')}
+            onClick={withConfirm('reboot', () => irrigationReboot(deviceId))}
+          >
+            {btnLabel('reboot', 'REBOOT DEVICE')}
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            loading={btnLoading('factoryReset')}
+            disabled={btnDisabled('factoryReset')}
+            onClick={withConfirm('factoryReset', async () => {
+              if (!window.confirm('Factory reset will erase WiFi, MQTT, and zone config. Type OK to continue.')) return;
+              await irrigationFactoryReset(deviceId);
+            })}
+          >
+            {btnLabel('factoryReset', 'FACTORY RESET')}
+          </Button>
+          <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-phosphor-ghost)', alignSelf: 'center' }}>
+            Reboot and factory reset require a second click to confirm.
+          </div>
+        </div>
+      </Card>
 
       {/* ═══ 16-ZONE GRID ═══ */}
       <div style={styles.zoneGrid}>
