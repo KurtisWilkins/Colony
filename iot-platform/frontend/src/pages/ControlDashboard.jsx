@@ -161,6 +161,16 @@ function ControlDashboard() {
   // Device state (auto-refresh 10s)
   const { state: device, loading: deviceLoading, error: deviceError } = useDeviceState(deviceId, 10000);
 
+  // Auto-redirect to the irrigation dashboard if this device is an irrigation controller.
+  // The grow-tent controls below don't apply to zone-based irrigation hardware.
+  useEffect(() => {
+    if (!deviceId || !device) return;
+    const type = String(device.device_type || '').toLowerCase();
+    if (type === 'irrigation' || type === 'irrigation_controller') {
+      navigate(`/irrigation/${deviceId}/dashboard`, { replace: true });
+    }
+  }, [deviceId, device, navigate]);
+
   // Automation log (auto-refresh 15s)
   const { events: automationEvents } = useAutomationLog(deviceId, 15000);
 
